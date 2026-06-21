@@ -80,8 +80,10 @@ automatisch eine Profilzeile an. Die Migration liegt unter
 - Build: `npx expo export --platform web`
 - Output: `dist`
 
-Die `EXPO_PUBLIC_*`-Variablen müssen im Vercel-Projekt als Environment Variables
-hinterlegt sein (sind bei diesem Setup gesetzt).
+Die öffentlichen `EXPO_PUBLIC_*`-Werte werden im `buildCommand` direkt mitgegeben,
+damit der Build ohne weitere Konfiguration durchläuft. Alternativ können sie als
+Environment Variables im Vercel-Projekt hinterlegt werden – dann genügt im
+`buildCommand` wieder `npx expo export --platform web`.
 
 ## Android-APK (EAS Build)
 
