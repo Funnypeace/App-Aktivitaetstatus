@@ -1,1 +1,1 @@
-# App-Aktivit-tstatus
+# App-Aktivitaetstatus
