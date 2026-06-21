@@ -39,8 +39,7 @@ vercel.json                   # Vercel-Build-Konfiguration
 ## Lokale Entwicklung
 
 ```bash
-npm install
-cp .env.example .env      # Werte sind bereits eingetragen (öffentliche Keys)
+npm install               # .env mit den öffentlichen Keys ist bereits im Repo
 npm run web               # Web im Browser
 npm run android           # Android (Emulator/Gerät, Expo Go oder Dev-Build)
 ```
@@ -80,10 +79,11 @@ automatisch eine Profilzeile an. Die Migration liegt unter
 - Build: `npx expo export --platform web`
 - Output: `dist`
 
-Die öffentlichen `EXPO_PUBLIC_*`-Werte werden im `buildCommand` direkt mitgegeben,
-damit der Build ohne weitere Konfiguration durchläuft. Alternativ können sie als
-Environment Variables im Vercel-Projekt hinterlegt werden – dann genügt im
-`buildCommand` wieder `npx expo export --platform web`.
+Die öffentlichen `EXPO_PUBLIC_*`-Werte stehen in der committeten `.env`, die Expo
+beim `expo export` automatisch lädt – so läuft der Build ohne weitere Konfiguration.
+Alternativ können die Werte als Environment Variables im Vercel-Projekt hinterlegt
+werden. (Hinweis: Vercel begrenzt `buildCommand` auf 256 Zeichen, daher werden die
+Keys nicht inline im Befehl übergeben.)
 
 ## Android-APK (EAS Build)
 

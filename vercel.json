@@ -1,12 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "EXPO_PUBLIC_SUPABASE_URL=https://mnrtjrksfgfygzmzifyy.supabase.co EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ucnRqcmtzZmdmeWd6bXppZnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMzk3NDIsImV4cCI6MjA5NzYxNTc0Mn0.h1JNlRb4V5zFM0tWFoU6m6wA556ZmM-t7jFqKkaRQg4 npx expo export --platform web",
+  "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "rewrites": [
-    {
-      "source": "/((?!assets/|_expo/|favicon).*)",
-      "destination": "/index.html"
-    }
-  ]
+  "installCommand": "npm install"
 }

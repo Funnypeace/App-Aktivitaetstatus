@@ -26,9 +26,9 @@ yarn-error.*
 # macOS
 .DS_Store
 
-# local env files (the values are public, but keep local overrides out of git)
-.env
+# local env overrides (the committed .env holds the public Supabase keys)
 .env.local
+.env*.local
 
 # EAS
 .easignore
