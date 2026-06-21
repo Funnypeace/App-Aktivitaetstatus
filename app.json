@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Aktivitätsstatus",
+    "slug": "app-aktivitaetstatus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "aktivitaetstatus",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.funnypeace.aktivitaetstatus"
+    },
+    "android": {
+      "package": "com.funnypeace.aktivitaetstatus"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
