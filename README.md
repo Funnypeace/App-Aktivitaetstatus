@@ -10,6 +10,9 @@ Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase*
 - **Manueller Status**: Toggle-Button setzt den eigenen Status auf *Online* oder
   *Offline*. Kein automatisches Presence-Tracking.
 - **Anzeige**: Eigener Status mit farbigem Punkt (🟢 grün = online, ⚪ grau = offline).
+- **Nutzerliste**: Unter dem eigenen Status alle anderen registrierten Nutzer mit
+  Name und Status; per Pull-to-Refresh aktualisierbar und **live** über Supabase
+  Realtime (Statusänderungen anderer erscheinen sofort ohne Neuladen).
 - **Row Level Security**: Jede:r Nutzer:in darf nur den **eigenen** Status ändern;
   alle angemeldeten Nutzer:innen dürfen Status lesen.
 - **Session-Persistenz**: AsyncStorage auf Mobile, localStorage im Web.
