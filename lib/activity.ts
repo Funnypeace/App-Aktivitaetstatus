@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type ActivityType = 'status' | 'games' | 'message' | 'chat' | 'login' | 'session' | 'squad';
+export type ActivityType = 'status' | 'games' | 'message' | 'chat' | 'login' | 'session' | 'squad' | 'level_up' | 'review';
 
 // Update the user's last_seen marker. Called on any meaningful activity.
 export async function touchLastSeen(userId: string): Promise<void> {

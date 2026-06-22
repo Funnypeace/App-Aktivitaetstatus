@@ -10,6 +10,7 @@ import { logLogin } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { setActive } from '../lib/presence';
+import { checkAndUpdateStreak } from '../lib/streaks';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
@@ -43,6 +44,7 @@ export default function Main({
     logLogin(myId);
     checkAndUnlockAchievements(myId, 'login');
     checkAndUnlockBadges(myId);
+    checkAndUpdateStreak(myId);
   }, [myId]);
 
   // Presence tracking: mark the app active while foregrounded, inactive when

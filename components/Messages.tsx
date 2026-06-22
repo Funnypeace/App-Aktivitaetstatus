@@ -19,6 +19,8 @@ import { logActivity } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { useReactions } from '../lib/reactions';
+import { addXP } from '../lib/xp';
+import { updateQuestProgress } from '../lib/quests';
 import { calcCompatibility } from '../lib/compatibility';
 import { clockTime, timeAgo } from '../lib/time';
 import Reactions from './Reactions';
@@ -208,6 +210,8 @@ export default function Messages({
       logActivity(myId, 'message', `an ${peerName}`);
       checkAndUnlockAchievements(myId, 'message');
       checkAndUnlockBadges(myId);
+      addXP(myId, 10);
+      updateQuestProgress(myId, 'send_dm');
     }
     setSending(false);
   }
@@ -296,7 +300,16 @@ export default function Messages({
                   <Reactions
                     reactions={reactionRows.filter((r) => r.target === item.id)}
                     userId={myId}
-                    onToggle={(emoji) => toggleReaction(item.id, emoji)}
+                    onToggle={(emoji) => {
+                      const isAdding = !reactionRows.some(
+                        (r) => r.target === item.id && r.user_id === myId && r.emoji === emoji
+                      );
+                      toggleReaction(item.id, emoji);
+                      if (isAdding) {
+                        addXP(myId, 10);
+                        updateQuestProgress(myId, 'react');
+                      }
+                    }}
                     align={mine ? 'flex-end' : 'flex-start'}
                   />
                 ) : null}

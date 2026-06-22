@@ -13,16 +13,19 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
+import { getTopRatedGames } from '../lib/reviews';
 
 type Row = { user_id: string; username: string | null; score: number };
-type BoardKey = 'activity' | 'achievements' | 'games' | 'social' | 'oldest';
+type BoardKey = 'activity' | 'achievements' | 'games' | 'social' | 'oldest' | 'level' | 'rated';
 
-const BOARDS: { key: BoardKey; label: string; rpc: string; unit: string }[] = [
-  { key: 'activity',     label: 'Aktivität',    rpc: 'leaderboard_activity',     unit: 'Events' },
-  { key: 'achievements', label: 'Achievements', rpc: 'leaderboard_achievements', unit: 'Badges' },
-  { key: 'games',        label: 'Spiele',       rpc: 'leaderboard_games',        unit: 'Sessions' },
-  { key: 'social',       label: 'Social',       rpc: 'leaderboard_social',       unit: 'Nachrichten' },
-  { key: 'oldest',       label: 'Älteste',      rpc: 'leaderboard_oldest',       unit: '' },
+const BOARDS: { key: BoardKey; label: string; rpc?: string; unit: string }[] = [
+  { key: 'activity',     label: 'Aktiv.',  rpc: 'leaderboard_activity',     unit: 'Events' },
+  { key: 'achievements', label: 'Achiev.', rpc: 'leaderboard_achievements', unit: 'Badges' },
+  { key: 'games',        label: 'Spiele',  rpc: 'leaderboard_games',        unit: 'Sessions' },
+  { key: 'social',       label: 'Social',  rpc: 'leaderboard_social',       unit: 'Nachrichten' },
+  { key: 'oldest',       label: 'Älteste', rpc: 'leaderboard_oldest',       unit: '' },
+  { key: 'level',        label: 'Level',   unit: 'Level' },
+  { key: 'rated',        label: 'Rating',  unit: '' },
 ];
 
 export default function Leaderboard({ session }: { session: Session }) {
@@ -38,19 +41,53 @@ export default function Leaderboard({ session }: { session: Session }) {
     let mounted = true;
     setLoading(true);
     const board = BOARDS.find((b) => b.key === active)!;
-    supabase
-      .rpc(board.rpc, { p_limit: 20 })
-      .then(({ data }) => {
+
+    if (active === 'level') {
+      supabase
+        .from('profiles')
+        .select('id, username, level, xp')
+        .order('level', { ascending: false })
+        .order('xp', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          if (!mounted) return;
+          setRows(
+            (data ?? []).map((r: Record<string, unknown>) => ({
+              user_id: r.id as string,
+              username: r.username as string | null,
+              score: Number(r.level),
+            }))
+          );
+          setLoading(false);
+        });
+    } else if (active === 'rated') {
+      getTopRatedGames(20).then((games) => {
         if (!mounted) return;
         setRows(
-          (data ?? []).map((r: Record<string, unknown>) => ({
-            user_id: r.user_id as string,
-            username: r.username as string | null,
-            score: Number(r.score),
+          games.map((g) => ({
+            user_id: g.game_name,
+            username: `${g.game_name}  (${g.count}×)`,
+            score: g.avg,
           }))
         );
         setLoading(false);
       });
+    } else if (board.rpc) {
+      supabase
+        .rpc(board.rpc, { p_limit: 20 })
+        .then(({ data }) => {
+          if (!mounted) return;
+          setRows(
+            (data ?? []).map((r: Record<string, unknown>) => ({
+              user_id: r.user_id as string,
+              username: r.username as string | null,
+              score: Number(r.score),
+            }))
+          );
+          setLoading(false);
+        });
+    }
+
     return () => {
       mounted = false;
     };
@@ -65,6 +102,8 @@ export default function Leaderboard({ session }: { session: Session }) {
         year: 'numeric',
       });
     }
+    if (board.key === 'level') return `Level ${row.score}`;
+    if (board.key === 'rated') return `⭐ ${row.score.toFixed(1)}`;
     return `${row.score} ${board.unit}`;
   }
 
@@ -109,7 +148,7 @@ export default function Leaderboard({ session }: { session: Session }) {
                   { backgroundColor: isMe ? colors.chipBg : colors.card },
                   isMe && { borderWidth: 1, borderColor: colors.primary },
                 ]}
-                onPress={() => openProfile(item.user_id)}
+                onPress={() => { if (board.key !== 'rated') openProfile(item.user_id); }}
               >
                 <Text style={[styles.rankText, { color: colors.textMuted }]}>
                   {medal ?? `${index + 1}.`}

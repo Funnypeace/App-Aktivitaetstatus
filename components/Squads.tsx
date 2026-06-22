@@ -18,6 +18,8 @@ import { supabase, Squad, SquadMember, SquadChatMessage, Profile } from '../lib/
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
+import { addXP } from '../lib/xp';
+import { updateQuestProgress } from '../lib/quests';
 import {
   fetchAllSquads,
   createSquad,
@@ -139,6 +141,8 @@ export default function Squads({
     const ok = await joinSquad(selectedSquad.id, myId);
     if (ok) {
       logActivity(myId, 'squad', `Squad beigetreten: ${selectedSquad.name}`);
+      addXP(myId, 15);
+      updateQuestProgress(myId, 'join_squad');
     }
   }
 

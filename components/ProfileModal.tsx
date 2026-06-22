@@ -19,6 +19,7 @@ import AchievementList from './AchievementList';
 import BadgeList from './BadgeList';
 import PresenceDot from './PresenceDot';
 import CompatibilityBadge from './CompatibilityBadge';
+import LevelBadge from './LevelBadge';
 
 function gamesOf(profile: Profile): string[] {
   return Array.isArray(profile.games) ? profile.games : [];
@@ -50,7 +51,7 @@ export default function ProfileModal({
       const { data } = await supabase
         .from('profiles')
         .select(
-          'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active'
+          'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active, xp, level, xp_to_next_level'
         )
         .eq('id', userId)
         .single();
@@ -124,6 +125,14 @@ export default function ProfileModal({
               <Text style={[styles.lastSeen, { color: colors.textMuted }]}>
                 Zuletzt gesehen {timeAgo(profile.last_seen)}
               </Text>
+
+              {profile.level > 1 || profile.xp > 0 ? (
+                <LevelBadge
+                  level={profile.level}
+                  xp={profile.xp}
+                  xp_to_next_level={profile.xp_to_next_level}
+                />
+              ) : null}
 
               {profile.bio ? (
                 <>

@@ -38,6 +38,9 @@ export type Profile = {
   status_text: string | null;
   bio: string | null;
   is_active: boolean;
+  xp: number;
+  level: number;
+  xp_to_next_level: number;
 };
 
 export type ActivityEvent = {
@@ -159,4 +162,44 @@ export type SquadChatMessage = {
   username: string | null;
   content: string;
   created_at: string;
+};
+
+export type DailyQuest = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  xp_reward: number;
+  condition: string;
+  target: number;
+};
+
+export type UserDailyQuest = {
+  id: string;
+  user_id: string;
+  quest_id: string;
+  date: string;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  completed_at: string | null;
+};
+
+export type UserStreak = {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  updated_at: string;
+};
+
+export type GameReview = {
+  id: string;
+  user_id: string;
+  game_name: string;
+  rating: number;
+  review_text: string | null;
+  created_at: string;
+  updated_at: string;
 };

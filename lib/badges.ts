@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { addXP } from './xp';
 
 export type BadgeDef = {
   name: string;
@@ -109,6 +110,7 @@ export async function checkAndUnlockBadges(userId: string): Promise<void> {
 
     if (toInsert.length) {
       await supabase.from('user_badges').insert(toInsert);
+      addXP(userId, 50 * toInsert.length);
     }
   } catch {
     // best-effort

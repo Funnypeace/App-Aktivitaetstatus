@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { addXP } from './xp';
 
 export type AchievementTrigger = 'login' | 'games' | 'message' | 'chat';
 
@@ -43,6 +44,7 @@ export async function checkAndUnlockAchievements(
       await supabase
         .from('user_achievements')
         .insert(toUnlock.map((achievement_id) => ({ user_id: userId, achievement_id })));
+      addXP(userId, 50 * toUnlock.length);
     }
   } catch {
     // best-effort
