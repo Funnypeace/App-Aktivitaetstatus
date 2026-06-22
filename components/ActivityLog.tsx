@@ -12,6 +12,12 @@ export default function ActivityLog({ userId }: { userId: string }) {
   const { colors } = useTheme();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  // Periodic re-render so relative timestamps stay accurate.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let active = true;

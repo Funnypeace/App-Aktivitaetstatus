@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Session } from '@supabase/supabase-js';
@@ -6,7 +6,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { NavProvider } from '../lib/nav';
-import { logActivity } from '../lib/activity';
+import { logLogin } from '../lib/activity';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
@@ -29,9 +29,13 @@ export default function Main({
   const [requestedPeer, setRequestedPeer] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
 
-  // Record a login event + refresh last_seen once per mounted session.
+  // Guard against React Strict Mode double-invocation and rapid re-mounts.
+  // logLogin itself also deduplicates via a 30-minute DB window.
+  const loginLogged = useRef(false);
   useEffect(() => {
-    logActivity(myId, 'login', 'App geöffnet');
+    if (loginLogged.current) return;
+    loginLogged.current = true;
+    logLogin(myId);
   }, [myId]);
 
   // Track total unread DMs for the tab badge.
