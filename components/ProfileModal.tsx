@@ -11,10 +11,13 @@ import {
 
 import { supabase, Profile } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
+import { presenceOf } from '../lib/presence';
 import { memberSince, timeAgo } from '../lib/time';
 import ActivityLog from './ActivityLog';
 import GameStats from './GameStats';
 import AchievementList from './AchievementList';
+import BadgeList from './BadgeList';
+import PresenceDot from './PresenceDot';
 
 function gamesOf(profile: Profile): string[] {
   return Array.isArray(profile.games) ? profile.games : [];
@@ -45,7 +48,9 @@ export default function ProfileModal({
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, username, is_online, games, theme, last_seen, created_at, updated_at')
+        .select(
+          'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active'
+        )
         .eq('id', userId)
         .single();
       if (active) {
@@ -53,8 +58,22 @@ export default function ProfileModal({
         setLoading(false);
       }
     })();
+
+    // Keep status / bio / presence live while the modal is open.
+    const channel = supabase
+      .channel(`profile-modal:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+        (payload) => {
+          setProfile((payload.new as Profile) ?? null);
+        }
+      )
+      .subscribe();
+
     return () => {
       active = false;
+      supabase.removeChannel(channel);
     };
   }, [userId]);
 
@@ -78,12 +97,7 @@ export default function ProfileModal({
           ) : (
             <ScrollView contentContainerStyle={styles.content}>
               <View style={styles.headerRow}>
-                <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: profile.is_online ? colors.online : colors.offline },
-                  ]}
-                />
+                <PresenceDot presence={presenceOf(profile)} size={14} />
                 <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                   {name}
                 </Text>
@@ -92,12 +106,30 @@ export default function ProfileModal({
                 {memberSince(profile.created_at)}
               </Text>
 
+              {profile.status_emoji || profile.status_text ? (
+                <Text style={[styles.customStatus, { color: colors.text }]} numberOfLines={1}>
+                  {profile.status_emoji ? `${profile.status_emoji} ` : ''}
+                  {profile.status_text ?? ''}
+                </Text>
+              ) : null}
+
               <Text style={[styles.status, { color: colors.text }]}>
-                {profile.is_online ? '🟢 Online' : '⚪ Offline'}
+                {presenceOf(profile) === 'active'
+                  ? '🟢 Jetzt aktiv'
+                  : profile.is_online
+                  ? '🟢 Online'
+                  : '⚪ Offline'}
               </Text>
               <Text style={[styles.lastSeen, { color: colors.textMuted }]}>
                 Zuletzt gesehen {timeAgo(profile.last_seen)}
               </Text>
+
+              {profile.bio ? (
+                <>
+                  <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Über mich</Text>
+                  <Text style={[styles.bio, { color: colors.text }]}>{profile.bio}</Text>
+                </>
+              ) : null}
 
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Aktuelle Spiele</Text>
               {games.length > 0 ? (
@@ -117,6 +149,9 @@ export default function ProfileModal({
 
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Achievements</Text>
               <AchievementList userId={profile.id} />
+
+              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Badges</Text>
+              <BadgeList userId={profile.id} />
 
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
                 Letzte Aktivität
@@ -184,6 +219,16 @@ const styles = StyleSheet.create({
   },
   member: {
     fontSize: 13,
+  },
+  customStatus: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  bio: {
+    fontSize: 14,
+    marginTop: 4,
+    lineHeight: 20,
   },
   status: {
     fontSize: 16,

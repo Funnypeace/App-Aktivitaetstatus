@@ -33,6 +33,22 @@ Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase*
   mit Unread-Badge, Chat-Ansicht, „Mark as read“ beim Öffnen, Live über Realtime.
 - **Global Chat**: öffentlicher Chat für alle Angemeldeten, Lazy-Load der letzten
   50 Nachrichten, Live über Realtime.
+- **Custom Status**: Status-Emoji + kurzer Status-Text (z. B. „🎮 Playing WoW“),
+  editierbar in den Einstellungen, angezeigt in Nutzerliste, Account- und Profil-
+  Screen, live über Realtime.
+- **Bio / Über mich**: Freitext (max. 200 Zeichen) in den Einstellungen,
+  angezeigt im Profil-Modal und Account-Screen.
+- **Presence / Live-Indikator**: dreistufig — pulsierender grüner Punkt = gerade
+  aktiv (`is_active` + `last_seen` < 5 Min), statisch grün = online, grau =
+  offline. App-Foreground/Background wird via Visibility/AppState getrackt.
+- **Emoji-Reactions**: Reaktionen (👍 ❤️ 😂 🔥 …) auf jede DM- und Global-Chat-
+  Nachricht, optimistisch, live über Realtime; Klick toggelt die eigene Reaction.
+- **Badges / Titel**: automatisch vergebene Auszeichnungen (Early Bird 🐦, Social
+  Legend 💬, Game Master 🎮, Speedrunner ⚡, Achievement Hunter 🏆, Streamer 🎬).
+  Anzeige im Profil-Modal, Account-Screen und (Top-Badges) in der Nutzerliste.
+- **Gaming-Stats, Achievements & Ranking**: Top-Spiele als Balkendiagramm,
+  8 freischaltbare Achievements und eine 5-fach-Rangliste (Aktivität,
+  Achievements, Spiele, Social, Älteste Mitglieder).
 - **Row Level Security**: Jede:r Nutzer:in darf nur den **eigenen** Status/Profil
   ändern; Status/Profile/Chat sind lesbar für alle Angemeldeten; DMs nur für
   Sender/Empfänger.
@@ -56,14 +72,25 @@ components/Auth.tsx           # Login / Registrierung
 components/Account.tsx        # Status-Toggle + Spiele + Nutzerliste + Aktivitäts-Log
 components/Messages.tsx       # Direktnachrichten (Konversationsliste + Chat-Ansicht)
 components/GlobalChat.tsx     # Öffentlicher Global-Chat
-components/Settings.tsx       # Theme-Toggle + Abmelden
-components/ProfileModal.tsx   # Profil-Details (Modal)
+components/Settings.tsx       # Status & Bio + Theme-Toggle + Abmelden
+components/ProfileModal.tsx   # Profil-Details (Status, Bio, Stats, Achievements, Badges)
 components/ActivityLog.tsx    # Wiederverwendbare Liste der letzten 10 Events
+components/GameStats.tsx      # Top-5-Spiele als Balkendiagramm
+components/AchievementList.tsx# Achievement-Raster (freigeschaltet/gesperrt)
+components/Leaderboard.tsx    # 5-fach-Rangliste
+components/Reactions.tsx      # Emoji-Reaction-Leiste pro Nachricht
+components/BadgeList.tsx      # Verdiente Badges eines Nutzers
+components/PresenceDot.tsx    # Presence-Punkt (pulsierend = aktiv)
 components/TabBar.tsx         # Untere Tab-Leiste
 lib/supabase.ts              # Supabase-Client + Typen (Profile, Message, …)
 lib/theme.tsx                # Theme-Context, Light-/Dark-Paletten, useTheme()
 lib/nav.tsx                  # In-App-Navigation (openProfile / openConversation)
 lib/activity.ts              # logActivity() + touchLastSeen()
+lib/presence.ts              # Presence-Logik (presenceOf, setActive)
+lib/stats.ts                 # Gaming-Stats (updateGameStats, fetchGameStats)
+lib/achievements.ts          # checkAndUnlockAchievements()
+lib/badges.ts                # Badge-Definitionen + checkAndUnlockBadges()
+lib/reactions.ts             # useReactions() Hook (Realtime + optimistisch)
 lib/time.ts                  # timeAgo() / memberSince() / clockTime()
 lib/games.ts                 # kuratierte Spiele-Liste
 supabase/migrations/*.sql    # Tabellen + RLS-Policies + Trigger + Realtime
@@ -106,6 +133,10 @@ Tabelle `public.profiles`:
 | `last_seen`  | `timestamptz` | letzte Aktivität                  |
 | `created_at` | `timestamptz` | Registrierungsdatum (für „Mitglied seit …“) |
 | `updated_at` | `timestamptz` | letzte Änderung                   |
+| `status_emoji` | `text`      | Custom-Status-Emoji (nullable)    |
+| `status_text`  | `text`      | Custom-Status-Text, max. 30 Z. (nullable) |
+| `bio`          | `text`      | Über-mich-Text, max. 200 Z. (nullable) |
+| `is_active`    | `boolean`   | App gerade im Foreground (default `false`) |
 
 Weitere Tabellen (alle mit RLS + Realtime):
 
@@ -116,6 +147,14 @@ Weitere Tabellen (alle mit RLS + Realtime):
   als Sender, UPDATE (read-Flag) nur als Empfänger.
 - `public.chat_messages` (`id`, `user_id`, `username`, `content`, `created_at`) –
   Global-Chat. SELECT für alle Angemeldeten, INSERT nur als man selbst.
+- `public.user_game_statistics` / `public.achievements` /
+  `public.user_achievements` – Gaming-Stats & Achievements (Phase 2).
+- `public.message_reactions` (`id`, `message_id`, `user_id`, `emoji`,
+  `created_at`) & `public.chat_reactions` (`id`, `chat_message_id`, `user_id`,
+  `emoji`, `created_at`) – Emoji-Reactions. SELECT für alle Angemeldeten,
+  INSERT/DELETE nur eigene Reactions. Unique je (Nachricht, Nutzer, Emoji).
+- `public.user_badges` (`id`, `user_id`, `badge_name`, `icon`, `earned_at`) –
+  verdiente Badges. SELECT für alle Angemeldeten, INSERT nur eigene Zeilen.
 
 RLS-Policies für `profiles`: SELECT für alle Angemeldeten, INSERT/UPDATE nur für
 die eigene Zeile (`auth.uid() = id`). Ein Trigger `on_auth_user_created` legt bei

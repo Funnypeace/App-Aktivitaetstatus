@@ -14,15 +14,21 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 
-import { supabase, Profile } from '../lib/supabase';
+import { supabase, Profile, UserBadge } from '../lib/supabase';
 import { GAMES, MAX_GAMES } from '../lib/games';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
 import { updateGameStats } from '../lib/stats';
 import { checkAndUnlockAchievements } from '../lib/achievements';
+import { checkAndUnlockBadges } from '../lib/badges';
+import { presenceOf } from '../lib/presence';
 import { timeAgo } from '../lib/time';
 import ActivityLog from './ActivityLog';
+import PresenceDot from './PresenceDot';
+
+const PROFILE_COLS =
+  'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active';
 
 function displayName(profile: Profile): string {
   const name = profile.username?.trim();
@@ -46,6 +52,7 @@ export default function Account({ session }: { session: Session }) {
   const [isOnline, setIsOnline] = useState(false);
   const [games, setGames] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [badgesByUser, setBadgesByUser] = useState<Record<string, UserBadge[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -56,7 +63,7 @@ export default function Account({ session }: { session: Session }) {
     setError(null);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, is_online, games, theme, last_seen, created_at, updated_at')
+      .select(PROFILE_COLS)
       .order('username', { ascending: true });
 
     if (error) {
@@ -121,6 +128,45 @@ export default function Account({ session }: { session: Session }) {
       supabase.removeChannel(channel);
     };
   }, [session.user.id]);
+
+  // Load all users' badges once and keep them live for the list + own header.
+  useEffect(() => {
+    let active = true;
+    async function loadBadges() {
+      const { data } = await supabase
+        .from('user_badges')
+        .select('id, user_id, badge_name, icon, earned_at')
+        .order('earned_at', { ascending: true });
+      if (!active) return;
+      const map: Record<string, UserBadge[]> = {};
+      for (const b of (data ?? []) as UserBadge[]) {
+        (map[b.user_id] ??= []).push(b);
+      }
+      setBadgesByUser(map);
+    }
+    loadBadges();
+
+    const channel = supabase
+      .channel('public:user_badges')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'user_badges' },
+        (payload) => {
+          const row = payload.new as UserBadge;
+          setBadgesByUser((prev) => {
+            const list = prev[row.user_id] ?? [];
+            if (list.some((b) => b.id === row.id)) return prev;
+            return { ...prev, [row.user_id]: [...list, row] };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -195,12 +241,15 @@ export default function Account({ session }: { session: Session }) {
       if (next.length > 0) {
         updateGameStats(session.user.id, next);
         checkAndUnlockAchievements(session.user.id, 'games');
+        checkAndUnlockBadges(session.user.id);
       }
     }
     setSavingGames(false);
   }
 
   const others = profiles.filter((p) => p.id !== session.user.id);
+  const me = profiles.find((p) => p.id === session.user.id) ?? null;
+  const myBadges = badgesByUser[session.user.id] ?? [];
 
   const filteredGames = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -223,8 +272,31 @@ export default function Account({ session }: { session: Session }) {
           <Text style={[styles.statusText, { color: colors.text }]}>
             {isOnline ? 'Online' : 'Offline'}
           </Text>
+          {me?.status_emoji || me?.status_text ? (
+            <Text style={[styles.customStatus, { color: colors.textMuted }]} numberOfLines={1}>
+              {me?.status_emoji ? `${me.status_emoji} ` : ''}
+              {me?.status_text ?? ''}
+            </Text>
+          ) : null}
           {saving ? <ActivityIndicator size="small" color={colors.textMuted} /> : null}
         </View>
+
+        {me?.bio ? (
+          <Text style={[styles.bio, { color: colors.textMuted }]} numberOfLines={3}>
+            {me.bio}
+          </Text>
+        ) : null}
+
+        {myBadges.length > 0 ? (
+          <View style={styles.badgeRow}>
+            {myBadges.slice(0, 3).map((b) => (
+              <View key={b.id} style={[styles.badgePill, { backgroundColor: colors.chipBg }]}>
+                <Text style={styles.badgePillIcon}>{b.icon}</Text>
+                <Text style={[styles.badgePillText, { color: colors.chipText }]}>{b.badge_name}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <View style={[styles.gamesBlock, { borderTopColor: colors.border }]}>
           <Text style={[styles.gamesLabel, { color: colors.textMuted }]}>Aktuelle Spiele</Text>
@@ -304,20 +376,21 @@ export default function Account({ session }: { session: Session }) {
         }
         renderItem={({ item }) => {
           const userGames = gamesOf(item);
+          const userBadges = badgesByUser[item.id] ?? [];
+          const presence = presenceOf(item);
+          const hasStatus = item.status_emoji || item.status_text;
           return (
             <Pressable
               style={[styles.userRow, { backgroundColor: colors.card }]}
               onPress={() => openProfile(item.id)}
             >
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: item.is_online ? colors.online : colors.offline },
-                ]}
-              />
+              <PresenceDot presence={presence} />
               <View style={styles.userInfo}>
                 <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
                   {displayName(item)}
+                  {userBadges.length > 0 ? (
+                    <Text> {userBadges.slice(0, 2).map((b) => b.icon).join('')}</Text>
+                  ) : null}
                   {userGames.length > 0 ? (
                     <Text style={[styles.userGames, { color: colors.textMuted }]}>
                       {' '}
@@ -325,14 +398,20 @@ export default function Account({ session }: { session: Session }) {
                     </Text>
                   ) : null}
                 </Text>
-                {!item.is_online ? (
+                {hasStatus ? (
+                  <Text style={[styles.userCustomStatus, { color: colors.textMuted }]} numberOfLines={1}>
+                    {item.status_emoji ? `${item.status_emoji} ` : ''}
+                    {item.status_text ?? ''}
+                  </Text>
+                ) : null}
+                {presence === 'offline' ? (
                   <Text style={[styles.lastSeen, { color: colors.textMuted }]}>
                     zuletzt {timeAgo(item.last_seen)}
                   </Text>
                 ) : null}
               </View>
               <Text style={[styles.userStatus, { color: colors.textMuted }]}>
-                {item.is_online ? 'Online' : 'Offline'}
+                {presence === 'active' ? 'Aktiv' : presence === 'online' ? 'Online' : 'Offline'}
               </Text>
             </Pressable>
           );
@@ -444,6 +523,13 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   dot: { width: 14, height: 14, borderRadius: 7 },
   statusText: { fontSize: 17, fontWeight: '600' },
+  customStatus: { fontSize: 14, flexShrink: 1 },
+  bio: { fontSize: 13, lineHeight: 18 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  badgePill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  badgePillIcon: { fontSize: 13 },
+  badgePillText: { fontSize: 12, fontWeight: '600' },
+  userCustomStatus: { fontSize: 12, marginTop: 2 },
   gamesBlock: { gap: 8, borderTopWidth: 1, paddingTop: 12 },
   gamesLabel: { fontSize: 13, fontWeight: '600' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

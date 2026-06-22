@@ -17,7 +17,10 @@ import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
+import { checkAndUnlockBadges } from '../lib/badges';
+import { useReactions } from '../lib/reactions';
 import { clockTime } from '../lib/time';
+import Reactions from './Reactions';
 
 const PAGE = 50;
 
@@ -39,6 +42,7 @@ export default function GlobalChat({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const seen = useRef<Set<string>>(new Set());
+  const { rows: reactionRows, toggle: toggleReaction } = useReactions('chat_reactions', 'chat_message_id', session.user.id);
 
   useEffect(() => {
     let active = true;
@@ -126,6 +130,7 @@ export default function GlobalChat({
       setMessages((prev) => prev.map((m) => (m.id === tempId ? row : m)));
       logActivity(session.user.id, 'chat', content.slice(0, 60));
       checkAndUnlockAchievements(session.user.id, 'chat');
+      checkAndUnlockBadges(session.user.id);
     }
     setSending(false);
   }
@@ -156,8 +161,9 @@ export default function GlobalChat({
         }
         renderItem={({ item }) => {
           const mine = item.user_id === session.user.id;
+          const isTemp = item.id.startsWith('temp-');
           return (
-            <View style={[styles.msgRow, mine ? styles.msgRowMine : styles.msgRowOther]}>
+            <View style={[styles.msgCol, mine ? styles.msgRowMine : styles.msgRowOther]}>
               <View
                 style={[
                   styles.bubble,
@@ -188,6 +194,14 @@ export default function GlobalChat({
                   {clockTime(item.created_at)}
                 </Text>
               </View>
+              {!isTemp ? (
+                <Reactions
+                  reactions={reactionRows.filter((r) => r.target === item.id)}
+                  userId={session.user.id}
+                  onToggle={(emoji) => toggleReaction(item.id, emoji)}
+                  align={mine ? 'flex-end' : 'flex-start'}
+                />
+              ) : null}
             </View>
           );
         }}
@@ -220,9 +234,9 @@ const styles = StyleSheet.create({
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { flex: 1, width: '100%' },
   listContent: { padding: 12, gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  msgRow: { width: '100%', flexDirection: 'row' },
-  msgRowMine: { justifyContent: 'flex-end' },
-  msgRowOther: { justifyContent: 'flex-start' },
+  msgCol: { width: '100%', flexDirection: 'column' },
+  msgRowMine: { alignItems: 'flex-end' },
+  msgRowOther: { alignItems: 'flex-start' },
   bubble: { maxWidth: '80%', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
   author: { fontSize: 12, fontWeight: '700', marginBottom: 2, opacity: 0.9 },
   bubbleText: { fontSize: 15 },

@@ -34,6 +34,10 @@ export type Profile = {
   last_seen: string;
   created_at: string;
   updated_at: string;
+  status_emoji: string | null;
+  status_text: string | null;
+  bio: string | null;
+  is_active: boolean;
 };
 
 export type ActivityEvent = {
@@ -82,4 +86,28 @@ export type UserAchievement = {
   user_id: string;
   achievement_id: string;
   unlocked_at: string;
+};
+
+export type MessageReaction = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+export type ChatReaction = {
+  id: string;
+  chat_message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+export type UserBadge = {
+  id: string;
+  user_id: string;
+  badge_name: string;
+  icon: string;
+  earned_at: string;
 };

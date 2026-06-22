@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
@@ -12,12 +15,62 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 
+const STATUS_EMOJIS = ['🎮', '🍕', '☕', '😴', '🎬', '🏃', '🎵', '📚', '💻', '🌙', '🔥', '❤️', '😎', '🤔', '🎉'];
+const STATUS_MAX = 30;
+const BIO_MAX = 200;
+
 export default function Settings({ session }: { session: Session }) {
   const { colors, name, setTheme } = useTheme();
   const isDark = name === 'dark';
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [statusEmoji, setStatusEmoji] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState('');
+  const [bio, setBio] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('status_emoji, status_text, bio')
+        .eq('id', session.user.id)
+        .single();
+      if (!active) return;
+      setStatusEmoji(data?.status_emoji ?? null);
+      setStatusText(data?.status_text ?? '');
+      setBio(data?.bio ?? '');
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [session.user.id]);
+
   async function toggleTheme(value: boolean) {
     await setTheme(value ? 'dark' : 'light', session.user.id);
+  }
+
+  function pickEmoji(emoji: string) {
+    setStatusEmoji((prev) => (prev === emoji ? null : emoji));
+  }
+
+  async function saveStatusBio() {
+    setSaving(true);
+    setSavedAt(null);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        status_emoji: statusEmoji,
+        status_text: statusText.trim() || null,
+        bio: bio.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', session.user.id);
+    setSaving(false);
+    if (!error) setSavedAt(Date.now());
   }
 
   async function signOut() {
@@ -30,6 +83,74 @@ export default function Settings({ session }: { session: Session }) {
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.heading, { color: colors.text }]}>Einstellungen</Text>
+
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Status & Bio</Text>
+
+        {loading ? (
+          <ActivityIndicator color={colors.textMuted} />
+        ) : (
+          <>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Status-Emoji</Text>
+            <View style={styles.emojiRow}>
+              {STATUS_EMOJIS.map((e) => {
+                const selected = statusEmoji === e;
+                return (
+                  <Pressable
+                    key={e}
+                    style={[
+                      styles.emojiBtn,
+                      { borderColor: selected ? colors.primary : colors.border },
+                      selected && { backgroundColor: colors.chipBg },
+                    ]}
+                    onPress={() => pickEmoji(e)}
+                  >
+                    <Text style={styles.emojiText}>{e}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
+              Status-Text ({statusText.length}/{STATUS_MAX})
+            </Text>
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.cardAlt }]}
+              placeholder="z. B. Playing WoW"
+              placeholderTextColor={colors.textMuted}
+              value={statusText}
+              onChangeText={(t) => setStatusText(t.slice(0, STATUS_MAX))}
+              maxLength={STATUS_MAX}
+            />
+
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
+              Bio ({bio.length}/{BIO_MAX})
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.text, backgroundColor: colors.cardAlt }]}
+              placeholder="Erzähl etwas über dich…"
+              placeholderTextColor={colors.textMuted}
+              value={bio}
+              onChangeText={(t) => setBio(t.slice(0, BIO_MAX))}
+              maxLength={BIO_MAX}
+              multiline
+            />
+
+            <Pressable
+              style={[styles.saveBtn, { backgroundColor: colors.primary }, saving && styles.disabled]}
+              onPress={saveStatusBio}
+              disabled={saving}
+            >
+              <Text style={[styles.saveText, { color: colors.primaryText }]}>
+                {saving ? 'Speichern…' : 'Speichern'}
+              </Text>
+            </Pressable>
+            {savedAt ? (
+              <Text style={[styles.savedHint, { color: colors.success }]}>Gespeichert ✓</Text>
+            ) : null}
+          </>
+        )}
+      </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Darstellung</Text>
@@ -100,6 +221,22 @@ const styles = StyleSheet.create({
   heading: { fontSize: 22, fontWeight: '700' },
   card: { borderRadius: 16, padding: 20, gap: 14 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: -6 },
+  emojiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  emojiBtn: { borderWidth: 1, borderRadius: 10, padding: 8, minWidth: 42, alignItems: 'center' },
+  emojiText: { fontSize: 20 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  textArea: { minHeight: 90, textAlignVertical: 'top' },
+  saveBtn: { borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 4 },
+  saveText: { fontSize: 15, fontWeight: '700' },
+  savedHint: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: -6 },
+  disabled: { opacity: 0.6 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rowLabel: { flex: 1 },
   rowTitle: { fontSize: 15, fontWeight: '600' },

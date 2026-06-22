@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Session } from '@supabase/supabase-js';
 
@@ -8,6 +8,8 @@ import { useTheme } from '../lib/theme';
 import { NavProvider } from '../lib/nav';
 import { logLogin } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
+import { checkAndUnlockBadges } from '../lib/badges';
+import { setActive } from '../lib/presence';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
@@ -39,6 +41,37 @@ export default function Main({
     loginLogged.current = true;
     logLogin(myId);
     checkAndUnlockAchievements(myId, 'login');
+    checkAndUnlockBadges(myId);
+  }, [myId]);
+
+  // Presence tracking: mark the app active while foregrounded, inactive when
+  // backgrounded/closed. A heartbeat keeps last_seen fresh.
+  useEffect(() => {
+    setActive(myId, true);
+    const heartbeat = setInterval(() => setActive(myId, true), 2 * 60 * 1000);
+
+    let cleanupPlatform = () => {};
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onVisibility = () => setActive(myId, document.visibilityState === 'visible');
+      const onUnload = () => setActive(myId, false);
+      document.addEventListener('visibilitychange', onVisibility);
+      window.addEventListener('beforeunload', onUnload);
+      cleanupPlatform = () => {
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('beforeunload', onUnload);
+      };
+    } else {
+      const sub = AppState.addEventListener('change', (state) => {
+        setActive(myId, state === 'active');
+      });
+      cleanupPlatform = () => sub.remove();
+    }
+
+    return () => {
+      clearInterval(heartbeat);
+      cleanupPlatform();
+      setActive(myId, false);
+    };
   }, [myId]);
 
   // Track total unread DMs for the tab badge.
