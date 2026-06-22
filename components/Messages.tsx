@@ -16,6 +16,7 @@ import { supabase, Message, Profile } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
+import { checkAndUnlockAchievements } from '../lib/achievements';
 import { clockTime, timeAgo } from '../lib/time';
 
 function nameOf(p: Profile | undefined, id: string): string {
@@ -195,6 +196,7 @@ export default function Messages({
       setMessages((prev) => prev.map((m) => (m.id === tempId ? row : m)));
       const peerName = nameOf(profilesById[peer], peer);
       logActivity(myId, 'message', `an ${peerName}`);
+      checkAndUnlockAchievements(myId, 'message');
     }
     setSending(false);
   }

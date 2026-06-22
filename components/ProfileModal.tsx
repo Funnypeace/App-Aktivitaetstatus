@@ -13,6 +13,8 @@ import { supabase, Profile } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { memberSince, timeAgo } from '../lib/time';
 import ActivityLog from './ActivityLog';
+import GameStats from './GameStats';
+import AchievementList from './AchievementList';
 
 function gamesOf(profile: Profile): string[] {
   return Array.isArray(profile.games) ? profile.games : [];
@@ -110,15 +112,11 @@ export default function ProfileModal({
                 <Text style={[styles.muted, { color: colors.textMuted }]}>Keine Spiele ausgewählt</Text>
               )}
 
-              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Achievements</Text>
-              <Text style={[styles.muted, { color: colors.textMuted }]}>
-                🏆 Noch keine Achievements (kommt später).
-              </Text>
-
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Gaming-Stats</Text>
-              <Text style={[styles.muted, { color: colors.textMuted }]}>
-                📊 Statistiken folgen in einer späteren Phase.
-              </Text>
+              <GameStats userId={profile.id} />
+
+              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Achievements</Text>
+              <AchievementList userId={profile.id} />
 
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
                 Letzte Aktivität

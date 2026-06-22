@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Aktivitätsstatus",
-    "slug": "app-aktivitaetstatus",
+    "name": "GamerCoPlay",
+    "slug": "gamercoplay",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "aktivitaetstatus",
+    "scheme": "gamercoplay",
     "splash": {
       "backgroundColor": "#ffffff"
     },
@@ -14,10 +14,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.funnypeace.aktivitaetstatus"
+      "bundleIdentifier": "com.funnypeace.gamercoplay"
     },
     "android": {
-      "package": "com.funnypeace.aktivitaetstatus"
+      "package": "com.funnypeace.gamercoplay"
     },
     "web": {
       "bundler": "metro"

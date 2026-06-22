@@ -16,6 +16,7 @@ import { supabase, ChatMessage } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
+import { checkAndUnlockAchievements } from '../lib/achievements';
 import { clockTime } from '../lib/time';
 
 const PAGE = 50;
@@ -124,6 +125,7 @@ export default function GlobalChat({
       seen.current.add(row.id);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? row : m)));
       logActivity(session.user.id, 'chat', content.slice(0, 60));
+      checkAndUnlockAchievements(session.user.id, 'chat');
     }
     setSending(false);
   }

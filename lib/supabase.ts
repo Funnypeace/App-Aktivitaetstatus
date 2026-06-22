@@ -60,3 +60,26 @@ export type ChatMessage = {
   content: string;
   created_at: string;
 };
+
+export type GameStat = {
+  id: string;
+  user_id: string;
+  game_name: string;
+  select_count: number;
+  last_selected: string;
+};
+
+export type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  condition: string;
+};
+
+export type UserAchievement = {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  unlocked_at: string;
+};

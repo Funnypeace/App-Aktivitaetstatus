@@ -19,6 +19,8 @@ import { GAMES, MAX_GAMES } from '../lib/games';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
+import { updateGameStats } from '../lib/stats';
+import { checkAndUnlockAchievements } from '../lib/achievements';
 import { timeAgo } from '../lib/time';
 import ActivityLog from './ActivityLog';
 
@@ -190,6 +192,10 @@ export default function Account({ session }: { session: Session }) {
       setError(error.message);
     } else {
       logActivity(session.user.id, 'games', next.length ? next.join(', ') : 'Keine Spiele');
+      if (next.length > 0) {
+        updateGameStats(session.user.id, next);
+        checkAndUnlockAchievements(session.user.id, 'games');
+      }
     }
     setSavingGames(false);
   }

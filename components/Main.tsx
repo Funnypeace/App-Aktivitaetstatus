@@ -7,9 +7,11 @@ import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { NavProvider } from '../lib/nav';
 import { logLogin } from '../lib/activity';
+import { checkAndUnlockAchievements } from '../lib/achievements';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
+import Leaderboard from './Leaderboard';
 import Settings from './Settings';
 import ProfileModal from './ProfileModal';
 import TabBar, { TabKey } from './TabBar';
@@ -36,6 +38,7 @@ export default function Main({
     if (loginLogged.current) return;
     loginLogged.current = true;
     logLogin(myId);
+    checkAndUnlockAchievements(myId, 'login');
   }, [myId]);
 
   // Track total unread DMs for the tab badge.
@@ -89,6 +92,7 @@ export default function Main({
             />
           ) : null}
           {tab === 'chat' ? <GlobalChat session={session} username={username} /> : null}
+          {tab === 'leaderboard' ? <Leaderboard session={session} /> : null}
           {tab === 'settings' ? <Settings session={session} /> : null}
         </View>
 

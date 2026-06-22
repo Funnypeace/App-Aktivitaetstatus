@@ -56,7 +56,7 @@ export default function Auth() {
       style={styles.wrapper}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Aktivitätsstatus</Text>
+        <Text style={styles.title}>GamerCoPlay</Text>
         <Text style={styles.subtitle}>Anmelden oder registrieren</Text>
 
         <TextInput
