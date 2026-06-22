@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { logActivity } from './activity';
+import { showNotification } from './notifications';
 
 // XP required to reach a given level. L1=0, L2=100, L3=250, L4=450, …
 export function xpNeededForLevel(level: number): number {
@@ -34,6 +35,7 @@ export async function addXP(userId: string, amount: number): Promise<void> {
 
     if (level > oldLevel) {
       logActivity(userId, 'level_up', `Level Up! 🎉 Level ${level}`);
+      showNotification('level_up', `Congratulations! You reached Level ${level}!`);
     }
   } catch {
     // best-effort

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { addXP } from './xp';
+import { showNotification } from './notifications';
 
 export type AchievementTrigger = 'login' | 'games' | 'message' | 'chat';
 
@@ -19,7 +20,7 @@ export async function checkAndUnlockAchievements(
 
     const { data: achs } = await supabase
       .from('achievements')
-      .select('id, condition')
+      .select('id, condition, name')
       .in('condition', conditions);
     if (!achs?.length) return;
 
@@ -45,6 +46,10 @@ export async function checkAndUnlockAchievements(
         .from('user_achievements')
         .insert(toUnlock.map((achievement_id) => ({ user_id: userId, achievement_id })));
       addXP(userId, 50 * toUnlock.length);
+      const nameById = new Map(achs.map((a) => [a.id, a.name as string]));
+      for (const id of toUnlock) {
+        showNotification('achievement_unlocked', `New Achievement: ${nameById.get(id) ?? ''}!`);
+      }
     }
   } catch {
     // best-effort

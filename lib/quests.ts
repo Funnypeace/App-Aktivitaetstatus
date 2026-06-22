@@ -1,5 +1,6 @@
 import { supabase, DailyQuest, UserDailyQuest } from './supabase';
 import { addXP } from './xp';
+import { showNotification } from './notifications';
 
 export async function getDailyQuests(): Promise<DailyQuest[]> {
   const { data } = await supabase.from('daily_quests').select('*');
@@ -88,7 +89,7 @@ export async function claimQuestReward(userId: string, userQuestId: string): Pro
 
     const { data: quest } = await supabase
       .from('daily_quests')
-      .select('xp_reward')
+      .select('name, xp_reward')
       .eq('id', row.quest_id)
       .single();
 
@@ -97,7 +98,11 @@ export async function claimQuestReward(userId: string, userQuestId: string): Pro
       .update({ claimed: true })
       .eq('id', userQuestId);
 
-    if (quest) await addXP(userId, (quest as { xp_reward: number }).xp_reward);
+    if (quest) {
+      const q = quest as { name: string; xp_reward: number };
+      await addXP(userId, q.xp_reward);
+      showNotification('quest_complete', `Quest complete: ${q.name} (+${q.xp_reward} XP)`);
+    }
     return true;
   } catch {
     return false;

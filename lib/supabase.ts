@@ -41,6 +41,12 @@ export type Profile = {
   xp: number;
   level: number;
   xp_to_next_level: number;
+  notifications_enabled: boolean;
+  notif_levelup: boolean;
+  notif_quests: boolean;
+  notif_messages: boolean;
+  notif_sound: boolean;
+  notif_vibration: boolean;
 };
 
 export type ActivityEvent = {
@@ -202,4 +208,15 @@ export type GameReview = {
   review_text: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type UserNotification = {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  action_link: string | null;
+  read: boolean;
+  created_at: string;
 };
