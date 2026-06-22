@@ -10,7 +10,7 @@ import Squads from './Squads';
 type SubTab = 'sessions' | 'squads';
 
 const PROFILE_COLS =
-  'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active';
+  'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active, xp, level, xp_to_next_level';
 
 export default function GamingHub({
   session,

@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { addXP } from './xp';
+import { showNotification } from './notifications';
 
 export type BadgeDef = {
   name: string;
@@ -109,6 +111,10 @@ export async function checkAndUnlockBadges(userId: string): Promise<void> {
 
     if (toInsert.length) {
       await supabase.from('user_badges').insert(toInsert);
+      addXP(userId, 50 * toInsert.length);
+      for (const b of toInsert) {
+        showNotification('badge_earned', `You earned the '${b.badge_name}' Badge!`);
+      }
     }
   } catch {
     // best-effort

@@ -25,11 +25,17 @@ import { checkAndUnlockBadges } from '../lib/badges';
 import { presenceOf } from '../lib/presence';
 import { calcCompatibility } from '../lib/compatibility';
 import { timeAgo } from '../lib/time';
+import { addXP } from '../lib/xp';
+import { updateQuestProgress } from '../lib/quests';
 import ActivityLog from './ActivityLog';
 import PresenceDot from './PresenceDot';
+import LevelBadge from './LevelBadge';
+import DailyQuests from './DailyQuests';
+import Streaks from './Streaks';
+import GameReviews from './GameReviews';
 
 const PROFILE_COLS =
-  'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active';
+  'id, username, is_online, games, theme, last_seen, created_at, updated_at, status_emoji, status_text, bio, is_active, xp, level, xp_to_next_level';
 
 function displayName(profile: Profile): string {
   const name = profile.username?.trim();
@@ -59,6 +65,10 @@ export default function Account({ session }: { session: Session }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftGames, setDraftGames] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+
+  const [showStreaks, setShowStreaks] = useState(false);
+  const [showQuests, setShowQuests] = useState(false);
+  const [reviewGame, setReviewGame] = useState<string | null>(null);
 
   const loadProfiles = useCallback(async () => {
     setError(null);
@@ -199,6 +209,8 @@ export default function Account({ session }: { session: Session }) {
         'status',
         `${previous ? 'Online' : 'Offline'} → ${next ? 'Online' : 'Offline'}`
       );
+      addXP(session.user.id, 5);
+      updateQuestProgress(session.user.id, 'change_status');
     }
     setSaving(false);
   }
@@ -243,6 +255,8 @@ export default function Account({ session }: { session: Session }) {
         updateGameStats(session.user.id, next);
         checkAndUnlockAchievements(session.user.id, 'games');
         checkAndUnlockBadges(session.user.id);
+        addXP(session.user.id, 10);
+        updateQuestProgress(session.user.id, 'select_game');
       }
     }
     setSavingGames(false);
@@ -299,14 +313,41 @@ export default function Account({ session }: { session: Session }) {
           </View>
         ) : null}
 
+        {me ? (
+          <LevelBadge
+            level={me.level ?? 1}
+            xp={me.xp ?? 0}
+            xp_to_next_level={me.xp_to_next_level ?? 100}
+          />
+        ) : null}
+
+        <View style={styles.actionRow}>
+          <Pressable
+            style={[styles.actionChip, { backgroundColor: colors.chipBg }]}
+            onPress={() => setShowStreaks(true)}
+          >
+            <Text style={[styles.actionChipText, { color: colors.text }]}>🔥 Streak</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.actionChip, { backgroundColor: colors.chipBg }]}
+            onPress={() => setShowQuests(true)}
+          >
+            <Text style={[styles.actionChipText, { color: colors.text }]}>📋 Daily Quests</Text>
+          </Pressable>
+        </View>
+
         <View style={[styles.gamesBlock, { borderTopColor: colors.border }]}>
           <Text style={[styles.gamesLabel, { color: colors.textMuted }]}>Aktuelle Spiele</Text>
           {games.length > 0 ? (
             <View style={styles.chipRow}>
               {games.map((g) => (
-                <View key={g} style={[styles.chip, { backgroundColor: colors.chipBg }]}>
+                <Pressable
+                  key={g}
+                  style={[styles.chip, { backgroundColor: colors.chipBg }]}
+                  onPress={() => setReviewGame(g)}
+                >
                   <Text style={[styles.chipText, { color: colors.chipText }]}>{g}</Text>
-                </View>
+                </Pressable>
               ))}
             </View>
           ) : (
@@ -389,23 +430,40 @@ export default function Account({ session }: { session: Session }) {
             >
               <PresenceDot presence={presence} />
               <View style={styles.userInfo}>
-                <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
-                  {displayName(item)}
-                  {userBadges.length > 0 ? (
-                    <Text> {userBadges.slice(0, 2).map((b) => b.icon).join('')}</Text>
+                <View style={styles.userNameRow}>
+                  <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+                    {displayName(item)}
+                    {userBadges.length > 0 ? (
+                      <Text> {userBadges.slice(0, 2).map((b) => b.icon).join('')}</Text>
+                    ) : null}
+                  </Text>
+                  {(item.level ?? 1) > 1 ? (
+                    <LevelBadge
+                      level={item.level}
+                      xp={item.xp}
+                      xp_to_next_level={item.xp_to_next_level}
+                      compact
+                    />
                   ) : null}
-                  {userGames.length > 0 ? (
-                    <Text style={[styles.userGames, { color: colors.textMuted }]}>
-                      {' '}
-                      ({userGames.join(', ')})
-                    </Text>
-                  ) : null}
-                </Text>
+                </View>
                 {hasStatus ? (
                   <Text style={[styles.userCustomStatus, { color: colors.textMuted }]} numberOfLines={1}>
                     {item.status_emoji ? `${item.status_emoji} ` : ''}
                     {item.status_text ?? ''}
                   </Text>
+                ) : null}
+                {userGames.length > 0 ? (
+                  <View style={styles.gameChipRow}>
+                    {userGames.map((g) => (
+                      <Pressable
+                        key={g}
+                        style={[styles.gameChip, { backgroundColor: colors.chipBg }]}
+                        onPress={() => setReviewGame(g)}
+                      >
+                        <Text style={[styles.gameChipText, { color: colors.chipText }]}>{g}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 ) : null}
                 {presence === 'offline' ? (
                   <Text style={[styles.lastSeen, { color: colors.textMuted }]}>
@@ -428,6 +486,23 @@ export default function Account({ session }: { session: Session }) {
             </Pressable>
           );
         }}
+      />
+
+      <DailyQuests
+        userId={session.user.id}
+        visible={showQuests}
+        onClose={() => setShowQuests(false)}
+      />
+      <Streaks
+        userId={session.user.id}
+        visible={showStreaks}
+        onClose={() => setShowStreaks(false)}
+      />
+      <GameReviews
+        userId={session.user.id}
+        gameName={reviewGame}
+        visible={!!reviewGame}
+        onClose={() => setReviewGame(null)}
       />
 
       <Modal
@@ -580,6 +655,13 @@ const styles = StyleSheet.create({
   userStatus: { fontSize: 13 },
   compatBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   compatText: { fontSize: 11, fontWeight: '700' },
+  actionRow: { flexDirection: 'row', gap: 8 },
+  actionChip: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  actionChipText: { fontSize: 14, fontWeight: '600' },
+  userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  gameChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  gameChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  gameChipText: { fontSize: 11, fontWeight: '600' },
   empty: {
     width: '100%',
     maxWidth: 480,

@@ -3,13 +3,16 @@ import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Session } from '@supabase/supabase-js';
 
-import { supabase } from '../lib/supabase';
+import { supabase, Message, ChatMessage } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { NavProvider } from '../lib/nav';
 import { logLogin } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { setActive } from '../lib/presence';
+import { checkAndUpdateStreak } from '../lib/streaks';
+import { showNotification, AppNotification } from '../lib/notifications';
+import { NotificationProvider } from './NotificationToast';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
@@ -34,6 +37,12 @@ export default function Main({
   const [requestedPeer, setRequestedPeer] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
 
+  // Keep the active tab readable inside async Realtime callbacks without
+  // re-subscribing whenever the tab changes.
+  const tabRef = useRef<TabKey>(tab);
+  tabRef.current = tab;
+  const nameCache = useRef<Map<string, string>>(new Map());
+
   // Guard against React Strict Mode double-invocation and rapid re-mounts.
   // logLogin itself also deduplicates via a 30-minute DB window.
   const loginLogged = useRef(false);
@@ -43,6 +52,7 @@ export default function Main({
     logLogin(myId);
     checkAndUnlockAchievements(myId, 'login');
     checkAndUnlockBadges(myId);
+    checkAndUpdateStreak(myId);
   }, [myId]);
 
   // Presence tracking: mark the app active while foregrounded, inactive when
@@ -103,6 +113,91 @@ export default function Main({
     };
   }, [myId]);
 
+  // In-app notifications driven by Realtime: incoming DMs, global chat, and
+  // people joining sessions/squads the user owns. Self-triggered events
+  // (level-ups, quests, badges) are raised directly from the lib layer.
+  useEffect(() => {
+    async function resolveName(id: string): Promise<string> {
+      const cached = nameCache.current.get(id);
+      if (cached) return cached;
+      const { data } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', id)
+        .single();
+      const name = data?.username?.trim() || 'Jemand';
+      nameCache.current.set(id, name);
+      return name;
+    }
+
+    const channel = supabase
+      .channel('notifications:realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        async (payload) => {
+          const m = payload.new as Message;
+          if (m.recipient_id !== myId || m.sender_id === myId) return;
+          if (tabRef.current === 'messages') return; // already reading DMs
+          const name = await resolveName(m.sender_id);
+          showNotification('new_message', `${name} sent you a message`, {
+            actionLink: `dm:${m.sender_id}`,
+            actionLabel: 'Öffnen',
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const c = payload.new as ChatMessage;
+          if (c.user_id === myId || tabRef.current === 'chat') return;
+          const name = c.username?.trim() || 'Jemand';
+          showNotification('chat', `${name}: ${c.content.slice(0, 60)}`, {
+            actionLink: 'tab:chat',
+            actionLabel: 'Öffnen',
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'session_members' },
+        async (payload) => {
+          const row = payload.new as { session_id: string; user_id: string };
+          if (row.user_id === myId) return;
+          const { data: s } = await supabase
+            .from('gaming_sessions')
+            .select('creator_id, title')
+            .eq('id', row.session_id)
+            .single();
+          if (!s || s.creator_id !== myId) return;
+          const name = await resolveName(row.user_id);
+          showNotification('session_joined', `${name} joined your Gaming Session "${s.title}"!`);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'squad_members' },
+        async (payload) => {
+          const row = payload.new as { squad_id: string; user_id: string };
+          if (row.user_id === myId) return;
+          const { data: sq } = await supabase
+            .from('squads')
+            .select('leader_id, name')
+            .eq('id', row.squad_id)
+            .single();
+          if (!sq || sq.leader_id !== myId) return;
+          const name = await resolveName(row.user_id);
+          showNotification('squad', `${name} joined your Squad "${sq.name}"!`);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [myId]);
+
   const nav = {
     openProfile: (userId: string) => setProfileUserId(userId),
     openConversation: (userId: string) => {
@@ -111,10 +206,21 @@ export default function Main({
     },
   };
 
+  function handleNotificationAction(n: AppNotification) {
+    const link = n.actionLink;
+    if (!link) return;
+    if (link.startsWith('dm:')) {
+      nav.openConversation(link.slice(3));
+    } else if (link === 'tab:chat') {
+      setTab('chat');
+    }
+  }
+
   return (
     <NavProvider value={nav}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
+      <NotificationProvider userId={myId} onAction={handleNotificationAction}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
         <View style={styles.screen}>
           {tab === 'home' ? <Account session={session} /> : null}
           {tab === 'messages' ? (
@@ -133,16 +239,17 @@ export default function Main({
 
         <TabBar active={tab} onChange={setTab} unread={unread} />
 
-        <ProfileModal
-          userId={profileUserId}
-          selfId={myId}
-          onClose={() => setProfileUserId(null)}
-          onSendMessage={(userId) => {
-            setProfileUserId(null);
-            nav.openConversation(userId);
-          }}
-        />
-      </View>
+          <ProfileModal
+            userId={profileUserId}
+            selfId={myId}
+            onClose={() => setProfileUserId(null)}
+            onSendMessage={(userId) => {
+              setProfileUserId(null);
+              nav.openConversation(userId);
+            }}
+          />
+        </View>
+      </NotificationProvider>
     </NavProvider>
   );
 }

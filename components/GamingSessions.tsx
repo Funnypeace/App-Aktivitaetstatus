@@ -18,6 +18,8 @@ import { supabase, GamingSession, Profile } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
+import { addXP } from '../lib/xp';
+import { updateQuestProgress } from '../lib/quests';
 import {
   fetchOpenSessions,
   createSession,
@@ -139,6 +141,8 @@ export default function GamingSessions({
     });
     if (s) {
       logActivity(myId, 'session', `Session erstellt: ${s.title}`);
+      addXP(myId, 25);
+      updateQuestProgress(myId, 'create_session');
       setShowCreate(false);
       setCGame(''); setCTitle(''); setCDesc(''); setCLimit(4); setCVoice('');
     }

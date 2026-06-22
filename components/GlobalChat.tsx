@@ -19,6 +19,8 @@ import { logActivity } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { useReactions } from '../lib/reactions';
+import { addXP } from '../lib/xp';
+import { updateQuestProgress } from '../lib/quests';
 import { clockTime } from '../lib/time';
 import Reactions from './Reactions';
 
@@ -131,6 +133,8 @@ export default function GlobalChat({
       logActivity(session.user.id, 'chat', content.slice(0, 60));
       checkAndUnlockAchievements(session.user.id, 'chat');
       checkAndUnlockBadges(session.user.id);
+      addXP(session.user.id, 10);
+      updateQuestProgress(session.user.id, 'send_chat');
     }
     setSending(false);
   }
@@ -198,7 +202,16 @@ export default function GlobalChat({
                 <Reactions
                   reactions={reactionRows.filter((r) => r.target === item.id)}
                   userId={session.user.id}
-                  onToggle={(emoji) => toggleReaction(item.id, emoji)}
+                  onToggle={(emoji) => {
+                    const isAdding = !reactionRows.some(
+                      (r) => r.target === item.id && r.user_id === session.user.id && r.emoji === emoji
+                    );
+                    toggleReaction(item.id, emoji);
+                    if (isAdding) {
+                      addXP(session.user.id, 10);
+                      updateQuestProgress(session.user.id, 'react');
+                    }
+                  }}
                   align={mine ? 'flex-end' : 'flex-start'}
                 />
               ) : null}
