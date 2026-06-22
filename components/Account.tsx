@@ -23,6 +23,7 @@ import { updateGameStats } from '../lib/stats';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { presenceOf } from '../lib/presence';
+import { calcCompatibility } from '../lib/compatibility';
 import { timeAgo } from '../lib/time';
 import ActivityLog from './ActivityLog';
 import PresenceDot from './PresenceDot';
@@ -379,6 +380,8 @@ export default function Account({ session }: { session: Session }) {
           const userBadges = badgesByUser[item.id] ?? [];
           const presence = presenceOf(item);
           const hasStatus = item.status_emoji || item.status_text;
+          const compat = calcCompatibility(games, userGames);
+          const showCompat = compat.score >= 40;
           return (
             <Pressable
               style={[styles.userRow, { backgroundColor: colors.card }]}
@@ -410,9 +413,18 @@ export default function Account({ session }: { session: Session }) {
                   </Text>
                 ) : null}
               </View>
-              <Text style={[styles.userStatus, { color: colors.textMuted }]}>
-                {presence === 'active' ? 'Aktiv' : presence === 'online' ? 'Online' : 'Offline'}
-              </Text>
+              <View style={styles.userRight}>
+                <Text style={[styles.userStatus, { color: colors.textMuted }]}>
+                  {presence === 'active' ? 'Aktiv' : presence === 'online' ? 'Online' : 'Offline'}
+                </Text>
+                {showCompat ? (
+                  <View style={[styles.compatBadge, { backgroundColor: compat.score === 100 ? '#FEF3C7' : colors.cardAlt }]}>
+                    <Text style={[styles.compatText, { color: compat.score === 100 ? '#D97706' : colors.primary }]}>
+                      {compat.score === 100 ? '🏆' : '🎮'} {compat.score}%
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </Pressable>
           );
         }}
@@ -564,7 +576,10 @@ const styles = StyleSheet.create({
   userName: { fontSize: 15, fontWeight: '500' },
   userGames: { fontSize: 13, fontWeight: '400' },
   lastSeen: { fontSize: 12, marginTop: 2 },
+  userRight: { alignItems: 'flex-end', gap: 4 },
   userStatus: { fontSize: 13 },
+  compatBadge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  compatText: { fontSize: 11, fontWeight: '700' },
   empty: {
     width: '100%',
     maxWidth: 480,

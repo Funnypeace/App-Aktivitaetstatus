@@ -18,6 +18,7 @@ import GameStats from './GameStats';
 import AchievementList from './AchievementList';
 import BadgeList from './BadgeList';
 import PresenceDot from './PresenceDot';
+import CompatibilityBadge from './CompatibilityBadge';
 
 function gamesOf(profile: Profile): string[] {
   return Array.isArray(profile.games) ? profile.games : [];
@@ -143,6 +144,13 @@ export default function ProfileModal({
               ) : (
                 <Text style={[styles.muted, { color: colors.textMuted }]}>Keine Spiele ausgewählt</Text>
               )}
+
+              {!isSelf ? (
+                <>
+                  <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Gaming Compatibility</Text>
+                  <CompatibilityBadge selfId={selfId} otherId={profile.id} />
+                </>
+              ) : null}
 
               <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Gaming-Stats</Text>
               <GameStats userId={profile.id} />

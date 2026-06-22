@@ -19,8 +19,10 @@ import { logActivity } from '../lib/activity';
 import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { useReactions } from '../lib/reactions';
+import { calcCompatibility } from '../lib/compatibility';
 import { clockTime, timeAgo } from '../lib/time';
 import Reactions from './Reactions';
+import CompatibilityBadge from './CompatibilityBadge';
 
 function nameOf(p: Profile | undefined, id: string): string {
   const n = p?.username?.trim();
@@ -240,6 +242,13 @@ export default function Messages({
             <Text style={[styles.chatTitle, { color: colors.text }]} numberOfLines={1}>
               {nameOf(peerProfile, peer)}
             </Text>
+            <CompatibilityBadge
+              selfId={myId}
+              otherId={peer}
+              compact
+              gamesA={profilesById[myId]?.games ?? []}
+              gamesB={peerProfile?.games ?? []}
+            />
           </Pressable>
           <View style={styles.backBtn} />
         </View>
