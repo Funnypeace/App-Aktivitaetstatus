@@ -10,9 +10,14 @@ Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase*
 - **Manueller Status**: Toggle-Button setzt den eigenen Status auf *Online* oder
   *Offline*. Kein automatisches Presence-Tracking.
 - **Anzeige**: Eigener Status mit farbigem Punkt (🟢 grün = online, ⚪ grau = offline).
+- **Spiele-Auswahl**: Nutzer:innen können 1–3 Spiele aus einer kuratierten Liste
+  (~80 populäre Titel: Claudios Favoriten + aktuelle Steam-Topliste + Award-
+  Gewinner 2024–2026) auswählen. Auswahl per Such- und Checkbox-Dialog, Anzeige
+  als Chips.
 - **Nutzerliste**: Unter dem eigenen Status alle anderen registrierten Nutzer mit
-  Name und Status; per Pull-to-Refresh aktualisierbar und **live** über Supabase
-  Realtime (Statusänderungen anderer erscheinen sofort ohne Neuladen).
+  Name, Status und gerade gespielten Spielen (z. B. „🟢 Claudio (WoW, ETS2)“);
+  per Pull-to-Refresh aktualisierbar und **live** über Supabase Realtime
+  (Status- und Spiele-Änderungen anderer erscheinen sofort ohne Neuladen).
 - **Row Level Security**: Jede:r Nutzer:in darf nur den **eigenen** Status ändern;
   alle angemeldeten Nutzer:innen dürfen Status lesen.
 - **Session-Persistenz**: AsyncStorage auf Mobile, localStorage im Web.
@@ -68,6 +73,7 @@ Tabelle `public.profiles`:
 | `id`         | `uuid` (PK)   | FK → `auth.users(id)`             |
 | `username`   | `text`        | Anzeigename                       |
 | `is_online`  | `boolean`     | manueller Status (default `false`)|
+| `games`      | `jsonb`       | gewählte Spiele als JSON-Array (default `[]`) |
 | `updated_at` | `timestamptz` | letzte Änderung                   |
 
 RLS-Policies: SELECT für alle Angemeldeten, INSERT/UPDATE nur für die eigene Zeile

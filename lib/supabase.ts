@@ -29,5 +29,6 @@ export type Profile = {
   id: string;
   username: string | null;
   is_online: boolean;
+  games: string[];
   updated_at: string;
 };
