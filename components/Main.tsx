@@ -13,6 +13,7 @@ import { setActive } from '../lib/presence';
 import Account from './Account';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
+import GamingHub from './GamingHub';
 import Leaderboard from './Leaderboard';
 import Settings from './Settings';
 import ProfileModal from './ProfileModal';
@@ -125,6 +126,7 @@ export default function Main({
             />
           ) : null}
           {tab === 'chat' ? <GlobalChat session={session} username={username} /> : null}
+          {tab === 'gaming' ? <GamingHub session={session} username={username} /> : null}
           {tab === 'leaderboard' ? <Leaderboard session={session} /> : null}
           {tab === 'settings' ? <Settings session={session} /> : null}
         </View>

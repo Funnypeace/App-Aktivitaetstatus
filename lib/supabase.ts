@@ -111,3 +111,52 @@ export type UserBadge = {
   icon: string;
   earned_at: string;
 };
+
+export type GamingSession = {
+  id: string;
+  creator_id: string;
+  game_name: string;
+  title: string;
+  description: string | null;
+  player_limit: number;
+  current_players: number;
+  voice_link: string | null;
+  status: 'open' | 'full';
+  starts_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export type SessionMember = {
+  id: string;
+  session_id: string;
+  user_id: string;
+  joined_at: string;
+};
+
+export type Squad = {
+  id: string;
+  name: string;
+  description: string | null;
+  leader_id: string;
+  icon: string;
+  member_count: number;
+  created_at: string;
+};
+
+export type SquadMember = {
+  id: string;
+  squad_id: string;
+  user_id: string;
+  joined_at: string;
+  role: 'leader' | 'member';
+};
+
+export type SquadChatMessage = {
+  id: string;
+  squad_id: string;
+  user_id: string;
+  username: string | null;
+  content: string;
+  created_at: string;
+};

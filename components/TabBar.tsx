@@ -2,14 +2,15 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../lib/theme';
 
-export type TabKey = 'home' | 'messages' | 'chat' | 'leaderboard' | 'settings';
+export type TabKey = 'home' | 'messages' | 'chat' | 'gaming' | 'leaderboard' | 'settings';
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'home',        label: 'Status',       icon: '🏠' },
-  { key: 'messages',   label: 'Nachrichten',  icon: '💬' },
-  { key: 'chat',       label: 'Global',       icon: '🌐' },
-  { key: 'leaderboard', label: 'Ranking',     icon: '🏆' },
-  { key: 'settings',   label: 'Einstellungen', icon: '⚙️' },
+  { key: 'home',        label: 'Status',    icon: '🏠' },
+  { key: 'messages',   label: 'Chats',     icon: '💬' },
+  { key: 'chat',       label: 'Global',    icon: '🌐' },
+  { key: 'gaming',     label: 'Gaming',    icon: '🎮' },
+  { key: 'leaderboard', label: 'Ranking',  icon: '🏆' },
+  { key: 'settings',   label: 'Settings',  icon: '⚙️' },
 ];
 
 export default function TabBar({
