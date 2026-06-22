@@ -18,8 +18,24 @@ Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase*
   Name, Status und gerade gespielten Spielen (z. B. „🟢 Claudio (WoW, ETS2)“);
   per Pull-to-Refresh aktualisierbar und **live** über Supabase Realtime
   (Status- und Spiele-Änderungen anderer erscheinen sofort ohne Neuladen).
-- **Row Level Security**: Jede:r Nutzer:in darf nur den **eigenen** Status ändern;
-  alle angemeldeten Nutzer:innen dürfen Status lesen.
+- **Last-Seen / Aktivitäts-Log**: `last_seen` wird bei jeder Aktivität
+  (Status-Toggle, Spiel-Änderung, Nachricht, Login) aktualisiert. Offline-Nutzer
+  in der Liste zeigen „zuletzt vor 3 Stunden“; im Account- und Profil-Screen gibt
+  es ein Aktivitäts-Log der letzten 10 Events.
+- **Dark / Light Mode**: Theme-Umschalter im Einstellungen-Screen, persistiert in
+  `profiles.theme` und beim App-Start geladen. Globaler Theme-Context, konsistent
+  auf Web und Native.
+- **Profil-Seite**: Klick auf einen Namen (Nutzerliste, Chat, Nachrichten) öffnet
+  ein Profil-Modal: Username, „Mitglied seit …“, Online-Status, Spiele-Chips,
+  Last-Seen, Achievements/Stats (Platzhalter), Aktivitäts-Log und
+  „Nachricht senden“.
+- **Direktnachrichten**: Konversationsliste (ungelesene oben, sonst alphabetisch)
+  mit Unread-Badge, Chat-Ansicht, „Mark as read“ beim Öffnen, Live über Realtime.
+- **Global Chat**: öffentlicher Chat für alle Angemeldeten, Lazy-Load der letzten
+  50 Nachrichten, Live über Realtime.
+- **Row Level Security**: Jede:r Nutzer:in darf nur den **eigenen** Status/Profil
+  ändern; Status/Profile/Chat sind lesbar für alle Angemeldeten; DMs nur für
+  Sender/Empfänger.
 - **Session-Persistenz**: AsyncStorage auf Mobile, localStorage im Web.
 
 ## Tech-Stack
@@ -34,11 +50,23 @@ Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase*
 ## Projektstruktur
 
 ```
-App.tsx                       # Einstiegspunkt, Session-Routing (Auth <-> Account)
+App.tsx                       # Einstiegspunkt: Auth, Theme/Profil-Load, dann Main
+components/Main.tsx           # Tab-Navigation, Profil-Modal, Unread-Badge, Nav-Context
 components/Auth.tsx           # Login / Registrierung
-components/Account.tsx        # Status-Toggle + Anzeige + Abmelden
-lib/supabase.ts              # Supabase-Client (plattformabhängiges Storage)
-supabase/migrations/*.sql    # Tabelle profiles + RLS-Policies + Trigger
+components/Account.tsx        # Status-Toggle + Spiele + Nutzerliste + Aktivitäts-Log
+components/Messages.tsx       # Direktnachrichten (Konversationsliste + Chat-Ansicht)
+components/GlobalChat.tsx     # Öffentlicher Global-Chat
+components/Settings.tsx       # Theme-Toggle + Abmelden
+components/ProfileModal.tsx   # Profil-Details (Modal)
+components/ActivityLog.tsx    # Wiederverwendbare Liste der letzten 10 Events
+components/TabBar.tsx         # Untere Tab-Leiste
+lib/supabase.ts              # Supabase-Client + Typen (Profile, Message, …)
+lib/theme.tsx                # Theme-Context, Light-/Dark-Paletten, useTheme()
+lib/nav.tsx                  # In-App-Navigation (openProfile / openConversation)
+lib/activity.ts              # logActivity() + touchLastSeen()
+lib/time.ts                  # timeAgo() / memberSince() / clockTime()
+lib/games.ts                 # kuratierte Spiele-Liste
+supabase/migrations/*.sql    # Tabellen + RLS-Policies + Trigger + Realtime
 eas.json                      # EAS-Build-Profile (preview => APK)
 vercel.json                   # Vercel-Build-Konfiguration
 .env.example                  # EXPO_PUBLIC_SUPABASE_URL / _ANON_KEY
@@ -74,12 +102,25 @@ Tabelle `public.profiles`:
 | `username`   | `text`        | Anzeigename                       |
 | `is_online`  | `boolean`     | manueller Status (default `false`)|
 | `games`      | `jsonb`       | gewählte Spiele als JSON-Array (default `[]`) |
+| `theme`      | `text`        | `'light'` \| `'dark'` (default `'light'`) |
+| `last_seen`  | `timestamptz` | letzte Aktivität                  |
+| `created_at` | `timestamptz` | Registrierungsdatum (für „Mitglied seit …“) |
 | `updated_at` | `timestamptz` | letzte Änderung                   |
 
-RLS-Policies: SELECT für alle Angemeldeten, INSERT/UPDATE nur für die eigene Zeile
-(`auth.uid() = id`). Ein Trigger `on_auth_user_created` legt bei der Registrierung
-automatisch eine Profilzeile an. Die Migration liegt unter
-`supabase/migrations/` und ist bereits auf das Projekt angewendet.
+Weitere Tabellen (alle mit RLS + Realtime):
+
+- `public.activity_events` (`id`, `user_id`, `type`, `details`, `created_at`) –
+  Aktivitäts-Log. SELECT für alle Angemeldeten, INSERT nur eigene Zeilen.
+- `public.messages` (`id`, `sender_id`, `recipient_id`, `content`, `read`,
+  `created_at`) – Direktnachrichten. SELECT nur als Sender/Empfänger, INSERT nur
+  als Sender, UPDATE (read-Flag) nur als Empfänger.
+- `public.chat_messages` (`id`, `user_id`, `username`, `content`, `created_at`) –
+  Global-Chat. SELECT für alle Angemeldeten, INSERT nur als man selbst.
+
+RLS-Policies für `profiles`: SELECT für alle Angemeldeten, INSERT/UPDATE nur für
+die eigene Zeile (`auth.uid() = id`). Ein Trigger `on_auth_user_created` legt bei
+der Registrierung automatisch eine Profilzeile an. Die Migrationen liegen unter
+`supabase/migrations/` und sind bereits auf das Projekt angewendet.
 
 ## Web-Deployment (Vercel)
 

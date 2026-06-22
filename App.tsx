@@ -4,8 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { Session } from '@supabase/supabase-js';
 
 import { supabase } from './lib/supabase';
+import { ThemeProvider, ThemeName } from './lib/theme';
 import Auth from './components/Auth';
-import Account from './components/Account';
+import Main from './components/Main';
 
 // Keep the auth token fresh on native while the app is in the foreground.
 if (Platform.OS !== 'web') {
@@ -22,6 +23,10 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [theme, setTheme] = useState<ThemeName>('light');
+  const [username, setUsername] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -35,24 +40,68 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      {loading ? (
+  // Load the user's theme + username whenever the signed-in user changes.
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) {
+      setProfileLoaded(false);
+      return;
+    }
+    let active = true;
+    setProfileLoaded(false);
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('theme, username')
+        .eq('id', uid)
+        .single();
+      if (!active) return;
+      setTheme((data?.theme as ThemeName) ?? 'light');
+      setUsername(data?.username ?? session?.user?.email?.split('@')[0] ?? null);
+      setProfileLoaded(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id]);
+
+  if (loading) {
+    return (
+      <View style={[styles.centered, { backgroundColor: '#f3f4f6' }]}>
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#111827" />
-      ) : session && session.user ? (
-        <Account key={session.user.id} session={session} />
-      ) : (
+      </View>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <View style={[styles.centered, { backgroundColor: '#f3f4f6' }]}>
+        <StatusBar style="dark" />
         <Auth />
-      )}
-    </View>
+      </View>
+    );
+  }
+
+  if (!profileLoaded) {
+    return (
+      <View style={[styles.centered, { backgroundColor: '#f3f4f6' }]}>
+        <StatusBar style="dark" />
+        <ActivityIndicator size="large" color="#111827" />
+      </View>
+    );
+  }
+
+  return (
+    <ThemeProvider key={session.user.id} initial={theme}>
+      <Main session={session} username={username} />
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },

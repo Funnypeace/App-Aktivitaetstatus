@@ -30,5 +30,33 @@ export type Profile = {
   username: string | null;
   is_online: boolean;
   games: string[];
+  theme: 'light' | 'dark';
+  last_seen: string;
+  created_at: string;
   updated_at: string;
+};
+
+export type ActivityEvent = {
+  id: string;
+  user_id: string;
+  type: 'status' | 'games' | 'message' | 'chat' | 'login' | string;
+  details: string | null;
+  created_at: string;
+};
+
+export type Message = {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  user_id: string;
+  username: string | null;
+  content: string;
+  created_at: string;
 };

@@ -16,6 +16,11 @@ import { Session } from '@supabase/supabase-js';
 
 import { supabase, Profile } from '../lib/supabase';
 import { GAMES, MAX_GAMES } from '../lib/games';
+import { useTheme } from '../lib/theme';
+import { useNav } from '../lib/nav';
+import { logActivity } from '../lib/activity';
+import { timeAgo } from '../lib/time';
+import ActivityLog from './ActivityLog';
 
 function displayName(profile: Profile): string {
   const name = profile.username?.trim();
@@ -23,16 +28,14 @@ function displayName(profile: Profile): string {
   return `Unbenannt (${profile.id.slice(0, 8)})`;
 }
 
-// Supabase liefert die jsonb-Spalte als Array; defensiv gegen null/Unfug.
 function gamesOf(profile: Profile): string[] {
   return Array.isArray(profile.games) ? profile.games : [];
 }
 
-function StatusDot({ online }: { online: boolean }) {
-  return <View style={[styles.dot, { backgroundColor: online ? '#22c55e' : '#9ca3af' }]} />;
-}
-
 export default function Account({ session }: { session: Session }) {
+  const { colors } = useTheme();
+  const { openProfile } = useNav();
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,7 +46,6 @@ export default function Account({ session }: { session: Session }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Spiele-Auswahl (Modal)
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftGames, setDraftGames] = useState<string[]>([]);
   const [search, setSearch] = useState('');
@@ -52,7 +54,7 @@ export default function Account({ session }: { session: Session }) {
     setError(null);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, is_online, games, updated_at')
+      .select('id, username, is_online, games, theme, last_seen, created_at, updated_at')
       .order('username', { ascending: true });
 
     if (error) {
@@ -75,7 +77,6 @@ export default function Account({ session }: { session: Session }) {
     }
   }, [session.user.id, session.user.email]);
 
-  // Initial load
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -102,7 +103,6 @@ export default function Account({ session }: { session: Session }) {
             const next = exists
               ? prev.map((p) => (p.id === row.id ? row : p))
               : [...prev, row];
-            // keep own status card in sync too
             if (row.id === session.user.id) {
               setIsOnline(row.is_online);
               setGames(gamesOf(row));
@@ -137,12 +137,19 @@ export default function Account({ session }: { session: Session }) {
       username,
       is_online: next,
       games,
+      last_seen: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
 
     if (error) {
-      setIsOnline(previous); // revert on failure
+      setIsOnline(previous);
       setError(error.message);
+    } else {
+      logActivity(
+        session.user.id,
+        'status',
+        `${previous ? 'Online' : 'Offline'} → ${next ? 'Online' : 'Offline'}`
+      );
     }
     setSaving(false);
   }
@@ -156,7 +163,7 @@ export default function Account({ session }: { session: Session }) {
   function toggleDraftGame(game: string) {
     setDraftGames((prev) => {
       if (prev.includes(game)) return prev.filter((g) => g !== game);
-      if (prev.length >= MAX_GAMES) return prev; // Limit erreicht
+      if (prev.length >= MAX_GAMES) return prev;
       return [...prev, game];
     });
   }
@@ -166,7 +173,7 @@ export default function Account({ session }: { session: Session }) {
     setError(null);
     const previous = games;
     const next = draftGames;
-    setGames(next); // optimistic
+    setGames(next);
     setPickerOpen(false);
 
     const { error } = await supabase.from('profiles').upsert({
@@ -174,18 +181,17 @@ export default function Account({ session }: { session: Session }) {
       username,
       is_online: isOnline,
       games: next,
+      last_seen: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
 
     if (error) {
-      setGames(previous); // revert on failure
+      setGames(previous);
       setError(error.message);
+    } else {
+      logActivity(session.user.id, 'games', next.length ? next.join(', ') : 'Keine Spiele');
     }
     setSavingGames(false);
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
   }
 
   const others = profiles.filter((p) => p.id !== session.user.id);
@@ -198,42 +204,50 @@ export default function Account({ session }: { session: Session }) {
 
   const header = (
     <View style={styles.headerWrap}>
-      <View style={styles.card}>
-        <Text style={styles.greeting}>Hallo{username ? `, ${username}` : ''} 👋</Text>
-        <Text style={styles.email}>{session.user.email}</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.greeting, { color: colors.text }]}>
+          Hallo{username ? `, ${username}` : ''} 👋
+        </Text>
+        <Text style={[styles.email, { color: colors.textMuted }]}>{session.user.email}</Text>
 
         <View style={styles.statusRow}>
-          <StatusDot online={isOnline} />
-          <Text style={styles.statusText}>{isOnline ? 'Online' : 'Offline'}</Text>
-          {saving ? <ActivityIndicator size="small" color="#6b7280" /> : null}
+          <View
+            style={[styles.dot, { backgroundColor: isOnline ? colors.online : colors.offline }]}
+          />
+          <Text style={[styles.statusText, { color: colors.text }]}>
+            {isOnline ? 'Online' : 'Offline'}
+          </Text>
+          {saving ? <ActivityIndicator size="small" color={colors.textMuted} /> : null}
         </View>
 
-        <View style={styles.gamesBlock}>
-          <Text style={styles.gamesLabel}>Aktuelle Spiele</Text>
+        <View style={[styles.gamesBlock, { borderTopColor: colors.border }]}>
+          <Text style={[styles.gamesLabel, { color: colors.textMuted }]}>Aktuelle Spiele</Text>
           {games.length > 0 ? (
             <View style={styles.chipRow}>
               {games.map((g) => (
-                <View key={g} style={styles.chip}>
-                  <Text style={styles.chipText}>{g}</Text>
+                <View key={g} style={[styles.chip, { backgroundColor: colors.chipBg }]}>
+                  <Text style={[styles.chipText, { color: colors.chipText }]}>{g}</Text>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={styles.gamesEmpty}>Keine Spiele ausgewählt</Text>
+            <Text style={[styles.gamesEmpty, { color: colors.textMuted }]}>
+              Keine Spiele ausgewählt
+            </Text>
           )}
           <Pressable style={styles.gamesEdit} onPress={openPicker} disabled={savingGames}>
-            <Text style={styles.gamesEditText}>
+            <Text style={[styles.gamesEditText, { color: colors.primary }]}>
               {savingGames ? 'Speichern…' : 'Spiele auswählen'}
             </Text>
           </Pressable>
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
 
         <Pressable
           style={[
             styles.button,
-            { backgroundColor: isOnline ? '#9ca3af' : '#22c55e' },
+            { backgroundColor: isOnline ? colors.offline : colors.online },
             saving && styles.disabled,
           ]}
           disabled={saving}
@@ -243,20 +257,21 @@ export default function Account({ session }: { session: Session }) {
             {isOnline ? 'Auf Offline setzen' : 'Auf Online setzen'}
           </Text>
         </Pressable>
-
-        <Pressable style={styles.signOut} onPress={signOut}>
-          <Text style={styles.signOutText}>Abmelden</Text>
-        </Pressable>
       </View>
 
-      <Text style={styles.sectionTitle}>Andere Nutzer</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Meine Aktivität</Text>
+        <ActivityLog userId={session.user.id} />
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Andere Nutzer</Text>
     </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.loaderWrap}>
-        <ActivityIndicator size="large" color="#111827" />
+      <View style={[styles.loaderWrap, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -264,30 +279,56 @@ export default function Account({ session }: { session: Session }) {
   return (
     <>
       <FlatList
-        style={styles.screen}
+        style={[styles.screen, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
         data={others}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.text}
+          />
+        }
         ListEmptyComponent={
-          <Text style={styles.empty}>Noch keine anderen Nutzer registriert.</Text>
+          <Text style={[styles.empty, { color: colors.textMuted }]}>
+            Noch keine anderen Nutzer registriert.
+          </Text>
         }
         renderItem={({ item }) => {
           const userGames = gamesOf(item);
           return (
-            <View style={styles.userRow}>
-              <StatusDot online={item.is_online} />
+            <Pressable
+              style={[styles.userRow, { backgroundColor: colors.card }]}
+              onPress={() => openProfile(item.id)}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: item.is_online ? colors.online : colors.offline },
+                ]}
+              />
               <View style={styles.userInfo}>
-                <Text style={styles.userName} numberOfLines={1}>
+                <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
                   {displayName(item)}
                   {userGames.length > 0 ? (
-                    <Text style={styles.userGames}> ({userGames.join(', ')})</Text>
+                    <Text style={[styles.userGames, { color: colors.textMuted }]}>
+                      {' '}
+                      ({userGames.join(', ')})
+                    </Text>
                   ) : null}
                 </Text>
+                {!item.is_online ? (
+                  <Text style={[styles.lastSeen, { color: colors.textMuted }]}>
+                    zuletzt {timeAgo(item.last_seen)}
+                  </Text>
+                ) : null}
               </View>
-              <Text style={styles.userStatus}>{item.is_online ? 'Online' : 'Offline'}</Text>
-            </View>
+              <Text style={[styles.userStatus, { color: colors.textMuted }]}>
+                {item.is_online ? 'Online' : 'Offline'}
+              </Text>
+            </Pressable>
           );
         }}
       />
@@ -298,17 +339,20 @@ export default function Account({ session }: { session: Session }) {
         transparent
         onRequestClose={() => setPickerOpen(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Spiele auswählen</Text>
-            <Text style={styles.modalHint}>
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Spiele auswählen</Text>
+            <Text style={[styles.modalHint, { color: colors.textMuted }]}>
               Wähle bis zu {MAX_GAMES} Spiele ({draftGames.length}/{MAX_GAMES})
             </Text>
 
             <TextInput
-              style={styles.searchInput}
+              style={[
+                styles.searchInput,
+                { borderColor: colors.border, color: colors.text, backgroundColor: colors.cardAlt },
+              ]}
               placeholder="Spiel suchen…"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textMuted}
               value={search}
               onChangeText={setSearch}
               autoCapitalize="none"
@@ -326,27 +370,38 @@ export default function Account({ session }: { session: Session }) {
                     onPress={() => toggleDraftGame(g)}
                     disabled={disabled}
                   >
-                    <View style={[styles.checkbox, selected && styles.checkboxOn]}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        { borderColor: colors.primary },
+                        selected && { backgroundColor: colors.primary },
+                      ]}
+                    >
                       {selected ? <Text style={styles.checkboxMark}>✓</Text> : null}
                     </View>
-                    <Text style={styles.gameOptionText}>{g}</Text>
+                    <Text style={[styles.gameOptionText, { color: colors.text }]}>{g}</Text>
                   </Pressable>
                 );
               })}
               {filteredGames.length === 0 ? (
-                <Text style={styles.gamesEmpty}>Kein Spiel gefunden.</Text>
+                <Text style={[styles.gamesEmpty, { color: colors.textMuted }]}>
+                  Kein Spiel gefunden.
+                </Text>
               ) : null}
             </ScrollView>
 
             <View style={styles.modalActions}>
               <Pressable
-                style={[styles.modalBtn, styles.modalCancel]}
+                style={[styles.modalBtn, { backgroundColor: colors.cardAlt }]}
                 onPress={() => setPickerOpen(false)}
               >
-                <Text style={styles.modalCancelText}>Abbrechen</Text>
+                <Text style={[styles.modalCancelText, { color: colors.text }]}>Abbrechen</Text>
               </Pressable>
-              <Pressable style={[styles.modalBtn, styles.modalSave]} onPress={saveGames}>
-                <Text style={styles.modalSaveText}>Speichern</Text>
+              <Pressable
+                style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                onPress={saveGames}
+              >
+                <Text style={[styles.modalSaveText, { color: colors.primaryText }]}>Speichern</Text>
               </Pressable>
             </View>
           </View>
@@ -357,31 +412,17 @@ export default function Account({ session }: { session: Session }) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    width: '100%',
-  },
+  screen: { flex: 1, width: '100%' },
   content: {
     alignItems: 'center',
     paddingTop: Platform.OS === 'web' ? 24 : 56,
     paddingBottom: 32,
     paddingHorizontal: 16,
   },
-  loaderWrap: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerWrap: {
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-    gap: 16,
-  },
+  loaderWrap: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  headerWrap: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: 16 },
   card: {
     width: '100%',
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     gap: 14,
@@ -391,105 +432,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  greeting: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  email: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginTop: -8,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-  },
-  statusText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  gamesBlock: {
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    paddingTop: 12,
-  },
-  gamesLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    backgroundColor: '#eef2ff',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipText: {
-    color: '#4338ca',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  gamesEmpty: {
-    fontSize: 13,
-    color: '#9ca3af',
-  },
-  gamesEdit: {
-    alignSelf: 'flex-start',
-    marginTop: 2,
-  },
-  gamesEditText: {
-    color: '#4f46e5',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  signOut: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  signOutText: {
-    color: '#6b7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  error: {
-    color: '#dc2626',
-    fontSize: 13,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#374151',
-    paddingHorizontal: 4,
-  },
+  cardTitle: { fontSize: 16, fontWeight: '700' },
+  greeting: { fontSize: 22, fontWeight: '700' },
+  email: { fontSize: 13, marginTop: -8 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  dot: { width: 14, height: 14, borderRadius: 7 },
+  statusText: { fontSize: 17, fontWeight: '600' },
+  gamesBlock: { gap: 8, borderTopWidth: 1, paddingTop: 12 },
+  gamesLabel: { fontSize: 13, fontWeight: '600' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chipText: { fontSize: 13, fontWeight: '600' },
+  gamesEmpty: { fontSize: 13 },
+  gamesEdit: { alignSelf: 'flex-start', marginTop: 2 },
+  gamesEditText: { fontSize: 14, fontWeight: '600' },
+  button: { borderRadius: 10, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
+  disabled: { opacity: 0.6 },
+  error: { fontSize: 13 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', paddingHorizontal: 4 },
   userRow: {
     width: '100%',
     maxWidth: 480,
@@ -497,7 +458,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -508,126 +468,45 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  userGames: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#6b7280',
-  },
-  userStatus: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
+  userInfo: { flex: 1 },
+  userName: { fontSize: 15, fontWeight: '500' },
+  userGames: { fontSize: 13, fontWeight: '400' },
+  lastSeen: { fontSize: 12, marginTop: 2 },
+  userStatus: { fontSize: 13 },
   empty: {
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
     textAlign: 'center',
-    color: '#9ca3af',
     fontSize: 14,
     paddingVertical: 24,
   },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 480,
-    maxHeight: '80%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    gap: 12,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  modalHint: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginTop: -6,
-  },
+  modalBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  modalCard: { width: '100%', maxWidth: 480, maxHeight: '80%', borderRadius: 16, padding: 20, gap: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '700' },
+  modalHint: { fontSize: 13, marginTop: -6 },
   searchInput: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#111827',
   },
-  gameList: {
-    flexGrow: 0,
-  },
-  gameOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-  gameOptionDisabled: {
-    opacity: 0.4,
-  },
-  gameOptionText: {
-    fontSize: 15,
-    color: '#111827',
-  },
+  gameList: { flexGrow: 0 },
+  gameOption: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  gameOptionDisabled: { opacity: 0.4 },
+  gameOptionText: { fontSize: 15 },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#c7d2fe',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: {
-    backgroundColor: '#4f46e5',
-    borderColor: '#4f46e5',
-  },
-  checkboxMark: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalCancel: {
-    backgroundColor: '#f3f4f6',
-  },
-  modalCancelText: {
-    color: '#374151',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  modalSave: {
-    backgroundColor: '#4f46e5',
-  },
-  modalSaveText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
+  checkboxMark: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  modalBtn: { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  modalCancelText: { fontWeight: '600', fontSize: 15 },
+  modalSaveText: { fontWeight: '700', fontSize: 15 },
 });
