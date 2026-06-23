@@ -4,6 +4,8 @@ Cross-Platform-App (Web + Android) mit **Login** und **manuellem Online-Status**
 Eine gemeinsame Codebasis mit **Expo / React Native**, Backend über **Supabase**
 (Auth + Postgres), Web-Deployment über **Vercel**, native APK über **EAS Build**.
 
+> CI: TypeScript-Check + automatischer EAS Android-Build bei jedem Push auf `main`.
+
 ## Features
 
 - **Auth**: Registrierung & Login per E-Mail + Passwort (Supabase Auth).
