@@ -50,6 +50,7 @@ const MORE_GAMES: string[] = [
   'Diablo IV',
   'Don’t Starve Together',
   'Dota 2',
+  'Dota Underlords',
   'EA SPORTS FC 26',
   'Elden Ring',
   'Enshrouded',
