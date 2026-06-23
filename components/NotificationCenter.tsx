@@ -78,11 +78,16 @@ export default function NotificationCenter({
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>🔔 Benachrichtigungen</Text>
-            {unreadCount > 0 ? (
-              <Pressable onPress={markAllRead}>
-                <Text style={[styles.markAll, { color: colors.primary }]}>Alle gelesen</Text>
+            <View style={styles.headerActions}>
+              {unreadCount > 0 ? (
+                <Pressable onPress={markAllRead}>
+                  <Text style={[styles.markAll, { color: colors.primary }]}>Alle gelesen</Text>
+                </Pressable>
+              ) : null}
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Text style={[styles.xBtn, { color: colors.textMuted }]}>✕</Text>
               </Pressable>
-            ) : null}
+            </View>
           </View>
 
           {loading ? (
@@ -151,6 +156,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '700' },
   markAll: { fontSize: 13, fontWeight: '600' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  xBtn: { fontSize: 18, fontWeight: '600' },
   loader: { padding: 40, alignItems: 'center' },
   empty: { textAlign: 'center', fontSize: 14, paddingVertical: 32 },
   list: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },

@@ -173,6 +173,8 @@ export default function Squads({
     });
     if (squad) {
       logActivity(myId, 'squad', `Squad erstellt: ${squad.name}`);
+      addXP(myId, 15);
+      updateQuestProgress(myId, 'join_squad');
       trackEvent('squad_create', { squad: squad.name });
       setShowCreate(false);
       setCName(''); setCDesc(''); setCIcon('⚔️');

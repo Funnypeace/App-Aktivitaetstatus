@@ -83,7 +83,12 @@ export default function Streaks({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>🔥 Streak & Aktivität</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>🔥 Streak & Aktivität</Text>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Text style={[styles.xBtn, { color: colors.textMuted }]}>✕</Text>
+            </Pressable>
+          </View>
 
           {loading ? (
             <View style={styles.loader}>
@@ -165,6 +170,8 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 16,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  xBtn: { fontSize: 18, fontWeight: '600', paddingLeft: 8 },
   title: { fontSize: 20, fontWeight: '700' },
   loader: { padding: 40, alignItems: 'center' },
   content: { gap: 16 },
