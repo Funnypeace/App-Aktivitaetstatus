@@ -8,7 +8,7 @@ import { useTheme } from '../lib/theme';
 
 // Shows the latest 10 activity events for a user. Self-contained: loads on
 // mount and subscribes to live inserts for that user.
-export default function ActivityLog({ userId }: { userId: string }) {
+export default function ActivityLog({ userId, limit = 10 }: { userId: string; limit?: number }) {
   const { colors } = useTheme();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ export default function ActivityLog({ userId }: { userId: string }) {
         .select('id, user_id, type, details, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(limit);
       if (active) {
         setEvents((data ?? []) as ActivityEvent[]);
         setLoading(false);
@@ -41,7 +41,7 @@ export default function ActivityLog({ userId }: { userId: string }) {
         { event: 'INSERT', schema: 'public', table: 'activity_events', filter: `user_id=eq.${userId}` },
         (payload) => {
           const row = payload.new as ActivityEvent;
-          setEvents((prev) => [row, ...prev].slice(0, 10));
+          setEvents((prev) => [row, ...prev].slice(0, limit));
         }
       )
       .subscribe();

@@ -13,7 +13,7 @@ import { setActive } from '../lib/presence';
 import { checkAndUpdateStreak } from '../lib/streaks';
 import { showNotification, AppNotification } from '../lib/notifications';
 import { NotificationProvider } from './NotificationToast';
-import Account from './Account';
+import HomeScreen from './HomeScreen';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
 import GamingHub from './GamingHub';
@@ -151,7 +151,7 @@ export default function Main({
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const c = payload.new as ChatMessage;
-          if (c.user_id === myId || tabRef.current === 'chat') return;
+          if (c.user_id === myId || tabRef.current === 'chat' || tabRef.current === 'home') return;
           const name = c.username?.trim() || 'Jemand';
           showNotification('chat', `${name}: ${c.content.slice(0, 60)}`, {
             actionLink: 'tab:chat',
@@ -222,7 +222,7 @@ export default function Main({
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
         <View style={styles.screen}>
-          {tab === 'home' ? <Account session={session} /> : null}
+          {tab === 'home' ? <HomeScreen session={session} username={username} /> : null}
           {tab === 'messages' ? (
             <Messages
               session={session}
