@@ -21,6 +21,7 @@ import { checkAndUnlockBadges } from '../lib/badges';
 import { useReactions } from '../lib/reactions';
 import { addXP } from '../lib/xp';
 import { updateQuestProgress } from '../lib/quests';
+import { trackEvent } from '../lib/analytics';
 import { calcCompatibility } from '../lib/compatibility';
 import { clockTime, timeAgo } from '../lib/time';
 import Reactions from './Reactions';
@@ -212,6 +213,7 @@ export default function Messages({
       checkAndUnlockBadges(myId);
       addXP(myId, 10);
       updateQuestProgress(myId, 'send_dm');
+      trackEvent('dm_send');
     }
     setSending(false);
   }

@@ -21,6 +21,7 @@ import { checkAndUnlockBadges } from '../lib/badges';
 import { useReactions } from '../lib/reactions';
 import { addXP } from '../lib/xp';
 import { updateQuestProgress } from '../lib/quests';
+import { trackEvent } from '../lib/analytics';
 import { clockTime } from '../lib/time';
 import Reactions from './Reactions';
 
@@ -135,6 +136,7 @@ export default function GlobalChat({
       checkAndUnlockBadges(session.user.id);
       addXP(session.user.id, 10);
       updateQuestProgress(session.user.id, 'send_chat');
+      trackEvent('message_send', { source: 'global' });
     }
     setSending(false);
   }

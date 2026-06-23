@@ -20,6 +20,7 @@ import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
 import { addXP } from '../lib/xp';
 import { updateQuestProgress } from '../lib/quests';
+import { trackEvent } from '../lib/analytics';
 import {
   fetchOpenSessions,
   createSession,
@@ -113,6 +114,7 @@ export default function GamingSessions({
     if (ok) {
       setMemberIds((prev) => [...prev, myId]);
       logActivity(myId, 'session', `Session beigetreten: ${selectedSession.title}`);
+      trackEvent('session_join', { game: selectedSession.game_name });
     }
   }
 
@@ -143,6 +145,7 @@ export default function GamingSessions({
       logActivity(myId, 'session', `Session erstellt: ${s.title}`);
       addXP(myId, 25);
       updateQuestProgress(myId, 'create_session');
+      trackEvent('session_create', { game: s.game_name });
       setShowCreate(false);
       setCGame(''); setCTitle(''); setCDesc(''); setCLimit(4); setCVoice('');
     }

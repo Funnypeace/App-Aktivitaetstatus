@@ -7,6 +7,7 @@ import { supabase } from './lib/supabase';
 import { ThemeProvider, ThemeName } from './lib/theme';
 import Auth from './components/Auth';
 import Main from './components/Main';
+import VercelAnalytics from './components/VercelAnalytics';
 
 // Keep the auth token fresh on native while the app is in the foreground.
 if (Platform.OS !== 'web') {
@@ -79,6 +80,7 @@ export default function App() {
       <View style={[styles.centered, { backgroundColor: '#f3f4f6' }]}>
         <StatusBar style="dark" />
         <Auth />
+        <VercelAnalytics />
       </View>
     );
   }
@@ -95,6 +97,7 @@ export default function App() {
   return (
     <ThemeProvider key={session.user.id} initial={theme}>
       <Main session={session} username={username} />
+      <VercelAnalytics />
     </ThemeProvider>
   );
 }

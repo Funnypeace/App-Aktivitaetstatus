@@ -11,9 +11,10 @@ import { checkAndUnlockAchievements } from '../lib/achievements';
 import { checkAndUnlockBadges } from '../lib/badges';
 import { setActive } from '../lib/presence';
 import { checkAndUpdateStreak } from '../lib/streaks';
+import { trackEvent, setAnalyticsUser } from '../lib/analytics';
 import { showNotification, AppNotification } from '../lib/notifications';
 import { NotificationProvider } from './NotificationToast';
-import Account from './Account';
+import HomeScreen from './HomeScreen';
 import Messages from './Messages';
 import GlobalChat from './GlobalChat';
 import GamingHub from './GamingHub';
@@ -53,7 +54,25 @@ export default function Main({
     checkAndUnlockAchievements(myId, 'login');
     checkAndUnlockBadges(myId);
     checkAndUpdateStreak(myId);
+    setAnalyticsUser(myId);
+    trackEvent('app_open');
   }, [myId]);
+
+  // Analytics: log app_close on web unload / native background.
+  useEffect(() => {
+    let cleanup = () => {};
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const onUnload = () => { trackEvent('app_close'); };
+      window.addEventListener('beforeunload', onUnload);
+      cleanup = () => window.removeEventListener('beforeunload', onUnload);
+    } else {
+      const sub = AppState.addEventListener('change', (state) => {
+        if (state === 'background' || state === 'inactive') trackEvent('app_close');
+      });
+      cleanup = () => sub.remove();
+    }
+    return cleanup;
+  }, []);
 
   // Presence tracking: mark the app active while foregrounded, inactive when
   // backgrounded/closed. A heartbeat keeps last_seen fresh.
@@ -151,7 +170,7 @@ export default function Main({
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
           const c = payload.new as ChatMessage;
-          if (c.user_id === myId || tabRef.current === 'chat') return;
+          if (c.user_id === myId || tabRef.current === 'chat' || tabRef.current === 'home') return;
           const name = c.username?.trim() || 'Jemand';
           showNotification('chat', `${name}: ${c.content.slice(0, 60)}`, {
             actionLink: 'tab:chat',
@@ -198,6 +217,11 @@ export default function Main({
     };
   }, [myId]);
 
+  function changeTab(next: TabKey) {
+    if (next !== tab) trackEvent('tab_switch', { tab: next });
+    setTab(next);
+  }
+
   const nav = {
     openProfile: (userId: string) => setProfileUserId(userId),
     openConversation: (userId: string) => {
@@ -222,7 +246,7 @@ export default function Main({
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
         <View style={styles.screen}>
-          {tab === 'home' ? <Account session={session} /> : null}
+          {tab === 'home' ? <HomeScreen session={session} username={username} /> : null}
           {tab === 'messages' ? (
             <Messages
               session={session}
@@ -237,7 +261,7 @@ export default function Main({
           {tab === 'settings' ? <Settings session={session} /> : null}
         </View>
 
-        <TabBar active={tab} onChange={setTab} unread={unread} />
+        <TabBar active={tab} onChange={changeTab} unread={unread} />
 
           <ProfileModal
             userId={profileUserId}
