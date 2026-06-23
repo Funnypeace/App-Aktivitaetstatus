@@ -64,7 +64,12 @@ export default function DailyQuests({
       <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>📋 Tägliche Quests</Text>
+            <View style={styles.headerTop}>
+              <Text style={[styles.title, { color: colors.text }]}>📋 Tägliche Quests</Text>
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Text style={[styles.xBtn, { color: colors.textMuted }]}>✕</Text>
+              </Pressable>
+            </View>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>
               {claimed}/{quests.length} abgeschlossen
             </Text>
@@ -152,6 +157,8 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
   card: { width: '100%', maxWidth: 480, maxHeight: '85%', borderRadius: 16, overflow: 'hidden' },
   header: { padding: 20, paddingBottom: 12, gap: 2 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  xBtn: { fontSize: 18, fontWeight: '600', paddingLeft: 8 },
   title: { fontSize: 20, fontWeight: '700' },
   subtitle: { fontSize: 13 },
   loader: { padding: 40, alignItems: 'center' },

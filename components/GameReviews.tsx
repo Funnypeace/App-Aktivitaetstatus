@@ -96,9 +96,14 @@ export default function GameReviews({
       <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-              🎮 {gameName}
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+                🎮 {gameName}
+              </Text>
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Text style={[styles.xBtn, { color: colors.textMuted }]}>✕</Text>
+              </Pressable>
+            </View>
             {reviews.length > 0 ? (
               <View style={styles.avgRow}>
                 <Stars rating={Math.round(avgRating)} size={14} />
@@ -195,7 +200,9 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
   card: { width: '100%', maxWidth: 480, maxHeight: '88%', borderRadius: 16, overflow: 'hidden' },
   header: { padding: 20, paddingBottom: 12, gap: 6 },
-  title: { fontSize: 20, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  xBtn: { fontSize: 18, fontWeight: '600', paddingLeft: 4 },
+  title: { fontSize: 20, fontWeight: '700', flex: 1 },
   avgRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   avgText: { fontSize: 13 },
   loader: { padding: 40, alignItems: 'center' },

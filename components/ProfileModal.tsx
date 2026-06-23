@@ -103,6 +103,9 @@ export default function ProfileModal({
                 <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
                   {name}
                 </Text>
+                <Pressable onPress={onClose} hitSlop={8}>
+                  <Text style={[styles.xBtn, { color: colors.textMuted }]}>✕</Text>
+                </Pressable>
               </View>
               <Text style={[styles.member, { color: colors.textMuted }]}>
                 {memberSince(profile.created_at)}
@@ -300,4 +303,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  xBtn: { fontSize: 18, fontWeight: '600', paddingLeft: 8 },
 });
