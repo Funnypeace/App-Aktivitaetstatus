@@ -27,6 +27,10 @@ jobs:
     name: EAS Build – Android APK
     needs: typecheck
     runs-on: ubuntu-latest
+    # Provide the Expo token to every step in this job so the EAS CLI can
+    # authenticate non-interactively in CI.
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +38,14 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+
+      - name: Verify EXPO_TOKEN is set
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Add it under Settings → Secrets and variables → Actions (https://docs.expo.dev/accounts/programmatic-access/)."
+            exit 1
+          fi
+          echo "EXPO_TOKEN is set."
 
       - name: Install dependencies
         run: npm ci
