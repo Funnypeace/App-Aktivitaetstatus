@@ -29,6 +29,7 @@ import { calcCompatibility } from '../lib/compatibility';
 import { timeAgo, clockTime } from '../lib/time';
 import { addXP } from '../lib/xp';
 import { updateQuestProgress } from '../lib/quests';
+import { trackEvent } from '../lib/analytics';
 import { useReactions } from '../lib/reactions';
 import ActivityLog from './ActivityLog';
 import PresenceDot from './PresenceDot';
@@ -239,6 +240,7 @@ export default function HomeScreen({
       logActivity(session.user.id, 'status', `${previous ? 'Online' : 'Offline'} → ${next ? 'Online' : 'Offline'}`);
       addXP(session.user.id, 5);
       updateQuestProgress(session.user.id, 'change_status');
+      trackEvent('status_changed', { online: next });
     }
     setSaving(false);
   }
@@ -283,6 +285,7 @@ export default function HomeScreen({
         checkAndUnlockBadges(session.user.id);
         addXP(session.user.id, 10);
         updateQuestProgress(session.user.id, 'select_game');
+        trackEvent('game_selected', { games: next });
       }
     }
     setSavingGames(false);
@@ -337,6 +340,7 @@ export default function HomeScreen({
       checkAndUnlockBadges(session.user.id);
       addXP(session.user.id, 10);
       updateQuestProgress(session.user.id, 'send_chat');
+      trackEvent('message_send', { source: 'home' });
     }
     setSending(false);
   }
@@ -603,6 +607,7 @@ export default function HomeScreen({
                       if (isAdding) {
                         addXP(session.user.id, 10);
                         updateQuestProgress(session.user.id, 'react');
+                        trackEvent('reaction', { source: 'home', emoji });
                       }
                     }}
                     align={mine ? 'flex-end' : 'flex-start'}

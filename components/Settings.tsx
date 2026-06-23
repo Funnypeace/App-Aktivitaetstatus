@@ -14,7 +14,9 @@ import { Session } from '@supabase/supabase-js';
 
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
+import { isOwnerEmail } from '../lib/analytics';
 import NotificationCenter from './NotificationCenter';
+import Analytics from './Analytics';
 
 type NotifPrefs = {
   notifications_enabled: boolean;
@@ -51,6 +53,8 @@ export default function Settings({ session }: { session: Session }) {
 
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS);
   const [showCenter, setShowCenter] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const isOwner = isOwnerEmail(session.user.email);
 
   useEffect(() => {
     let active = true;
@@ -291,6 +295,21 @@ export default function Settings({ session }: { session: Session }) {
         </Pressable>
       </View>
 
+      {isOwner ? (
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Admin</Text>
+          <Text style={[styles.rowSub, { color: colors.textMuted }]}>
+            Nur für dich sichtbar.
+          </Text>
+          <Pressable
+            style={[styles.signOut, { backgroundColor: colors.cardAlt }]}
+            onPress={() => setShowAnalytics(true)}
+          >
+            <Text style={[styles.signOutText, { color: colors.primary }]}>📊 Analytics Dashboard</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Konto</Text>
         <Text style={[styles.rowSub, { color: colors.textMuted }]}>{session.user.email}</Text>
@@ -305,6 +324,9 @@ export default function Settings({ session }: { session: Session }) {
       visible={showCenter}
       onClose={() => setShowCenter(false)}
     />
+    {isOwner ? (
+      <Analytics visible={showAnalytics} onClose={() => setShowAnalytics(false)} />
+    ) : null}
     </>
   );
 }

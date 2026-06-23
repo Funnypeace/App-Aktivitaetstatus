@@ -20,6 +20,7 @@ import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
 import { addXP } from '../lib/xp';
 import { updateQuestProgress } from '../lib/quests';
+import { trackEvent } from '../lib/analytics';
 import {
   fetchAllSquads,
   createSquad,
@@ -143,6 +144,7 @@ export default function Squads({
       logActivity(myId, 'squad', `Squad beigetreten: ${selectedSquad.name}`);
       addXP(myId, 15);
       updateQuestProgress(myId, 'join_squad');
+      trackEvent('squad_join', { squad: selectedSquad.name });
     }
   }
 
@@ -171,6 +173,7 @@ export default function Squads({
     });
     if (squad) {
       logActivity(myId, 'squad', `Squad erstellt: ${squad.name}`);
+      trackEvent('squad_create', { squad: squad.name });
       setShowCreate(false);
       setCName(''); setCDesc(''); setCIcon('⚔️');
     } else {

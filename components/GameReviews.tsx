@@ -14,6 +14,7 @@ import { GameReview } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { submitReview, getGameReviews, getMyReview } from '../lib/reviews';
 import { addXP } from '../lib/xp';
+import { trackEvent } from '../lib/analytics';
 
 function Stars({
   rating,
@@ -82,6 +83,7 @@ export default function GameReviews({
     const isNew = !myReview;
     const ok = await submitReview(userId, gameName, myRating, myText.trim() || undefined);
     if (ok && isNew) addXP(userId, 15);
+    if (ok) trackEvent('review_submitted', { game: gameName, rating: myRating });
     await load();
     setSaving(false);
   }
