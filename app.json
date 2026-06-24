@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "GamerCoPlay",
+    "slug": "gamercoplay",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "gamercoplay",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.funnypeace.gamercoplay"
+    },
+    "android": {
+      "package": "com.funnypeace.gamercoplay"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

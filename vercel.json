@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npx expo export --platform web && node scripts/postbuild.js",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/app/(.*)", "destination": "/app.html" }
+  ]
+}
