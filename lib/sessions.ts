@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { GamingSession } from './supabase';
+import type { GamingSession, SessionChatMessage } from './supabase';
 
 export async function fetchOpenSessions(): Promise<GamingSession[]> {
   const now = new Date().toISOString();
@@ -66,4 +66,28 @@ export async function fetchSessionMemberIds(sessionId: string): Promise<string[]
     .select('user_id')
     .eq('session_id', sessionId);
   return ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+}
+
+export async function fetchSessionChat(sessionId: string): Promise<SessionChatMessage[]> {
+  const { data } = await supabase
+    .from('session_chat')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as SessionChatMessage[];
+}
+
+export async function sendSessionMessage(params: {
+  session_id: string;
+  user_id: string;
+  username: string | null;
+  content: string;
+}): Promise<SessionChatMessage | null> {
+  const { data, error } = await supabase
+    .from('session_chat')
+    .insert(params)
+    .select()
+    .single();
+  if (error || !data) return null;
+  return data as SessionChatMessage;
 }

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 
-import { supabase, GamingSession, Profile } from '../lib/supabase';
+import { supabase, GamingSession, SessionChatMessage, Profile } from '../lib/supabase';
 import { useTheme } from '../lib/theme';
 import { useNav } from '../lib/nav';
 import { logActivity } from '../lib/activity';
@@ -28,6 +28,8 @@ import {
   leaveSession,
   deleteSession,
   fetchSessionMemberIds,
+  fetchSessionChat,
+  sendSessionMessage,
 } from '../lib/sessions';
 import { clockTime } from '../lib/time';
 import CompatibilityBadge from './CompatibilityBadge';
@@ -55,6 +57,12 @@ export default function GamingSessions({
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const seen = useRef<Set<string>>(new Set());
+
+  // Chat state
+  const [chat, setChat] = useState<SessionChatMessage[]>([]);
+  const [chatText, setChatText] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const chatSeen = useRef<Set<string>>(new Set());
 
   // Create form state
   const [cGame, setCGame] = useState('');
@@ -103,10 +111,35 @@ export default function GamingSessions({
   async function openDetail(s: GamingSession) {
     setSelectedSession(s);
     setLoadingMembers(true);
-    const ids = await fetchSessionMemberIds(s.id);
+    chatSeen.current.clear();
+    const [ids, msgs] = await Promise.all([
+      fetchSessionMemberIds(s.id),
+      fetchSessionChat(s.id),
+    ]);
+    msgs.forEach((m) => chatSeen.current.add(m.id));
     setMemberIds(ids);
+    setChat(msgs);
     setLoadingMembers(false);
   }
+
+  // Subscribe to chat when session is selected
+  useEffect(() => {
+    if (!selectedSession) return;
+    const sessionId = selectedSession.id;
+
+    const channel = supabase
+      .channel(`session-detail:${sessionId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_chat', filter: `session_id=eq.${sessionId}` }, (p) => {
+        const row = p.new as SessionChatMessage;
+        if (!chatSeen.current.has(row.id)) {
+          chatSeen.current.add(row.id);
+          setChat((prev) => [row, ...prev]);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedSession?.id]);
 
   async function handleJoin() {
     if (!selectedSession) return;
@@ -150,6 +183,33 @@ export default function GamingSessions({
       setCGame(''); setCTitle(''); setCDesc(''); setCLimit(4); setCVoice('');
     }
     setCreating(false);
+  }
+
+  async function handleSendChat() {
+    const content = chatText.trim();
+    if (!content || !selectedSession || sendingChat) return;
+    setSendingChat(true);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: SessionChatMessage = {
+      id: tempId,
+      session_id: selectedSession.id,
+      user_id: myId,
+      username,
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setChat((prev) => [optimistic, ...prev]);
+    setChatText('');
+
+    const result = await sendSessionMessage({ session_id: selectedSession.id, user_id: myId, username, content });
+    if (result) {
+      chatSeen.current.add(result.id);
+      setChat((prev) => prev.map((m) => (m.id === tempId ? result : m)));
+    } else {
+      setChat((prev) => prev.filter((m) => m.id !== tempId));
+      setChatText(content);
+    }
+    setSendingChat(false);
   }
 
   const displayName = (id: string) => {
@@ -249,102 +309,162 @@ export default function GamingSessions({
         <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             {selectedSession ? (
-              <ScrollView contentContainerStyle={styles.modalContent}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedSession.title}</Text>
-                <Text style={[styles.modalSub, { color: colors.textMuted }]}>
-                  🎮 {selectedSession.game_name}
-                </Text>
-                {selectedSession.description ? (
-                  <Text style={[styles.modalDesc, { color: colors.text }]}>{selectedSession.description}</Text>
-                ) : null}
-
-                <View style={[styles.infoRow, { backgroundColor: colors.cardAlt }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Spieler</Text>
-                  <Text style={[styles.infoValue, { color: colors.text }]}>
-                    {selectedSession.current_players} / {selectedSession.player_limit}
+              <View style={styles.detailBody}>
+                {/* Members pane */}
+                <ScrollView style={styles.membersPane} contentContainerStyle={{ gap: 4 }}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedSession.title}</Text>
+                  <Text style={[styles.modalSub, { color: colors.textMuted }]}>
+                    🎮 {selectedSession.game_name}
                   </Text>
-                </View>
+                  {selectedSession.description ? (
+                    <Text style={[styles.modalDesc, { color: colors.text }]}>{selectedSession.description}</Text>
+                  ) : null}
 
-                {selectedSession.starts_at ? (
                   <View style={[styles.infoRow, { backgroundColor: colors.cardAlt }]}>
-                    <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Startzeit</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Spieler</Text>
                     <Text style={[styles.infoValue, { color: colors.text }]}>
-                      {clockTime(selectedSession.starts_at)}
+                      {selectedSession.current_players} / {selectedSession.player_limit}
                     </Text>
                   </View>
-                ) : null}
 
-                {selectedSession.voice_link ? (
-                  <View style={[styles.infoRow, { backgroundColor: colors.cardAlt }]}>
-                    <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Voice</Text>
-                    <Text style={[styles.infoValue, { color: colors.primary }]} numberOfLines={1}>
-                      {selectedSession.voice_link}
+                  {selectedSession.starts_at ? (
+                    <View style={[styles.infoRow, { backgroundColor: colors.cardAlt }]}>
+                      <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Startzeit</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {clockTime(selectedSession.starts_at)}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {selectedSession.voice_link ? (
+                    <View style={[styles.infoRow, { backgroundColor: colors.cardAlt }]}>
+                      <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Voice</Text>
+                      <Text style={[styles.infoValue, { color: colors.primary }]} numberOfLines={1}>
+                        {selectedSession.voice_link}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Mitglieder</Text>
+                  {loadingMembers ? (
+                    <ActivityIndicator color={colors.textMuted} />
+                  ) : (
+                    memberIds.map((id) => {
+                      const mp = profiles.find((p) => p.id === id);
+                      return (
+                        <Pressable
+                          key={id}
+                          style={[styles.memberRow, { backgroundColor: colors.cardAlt }]}
+                          onPress={() => openProfile(id)}
+                        >
+                          <Text style={[styles.memberName, { color: colors.text }]}>
+                            {id === selectedSession.creator_id ? '👑 ' : ''}
+                            {displayName(id)}
+                          </Text>
+                          {id !== myId ? (
+                            <CompatibilityBadge
+                              selfId={myId}
+                              otherId={id}
+                              compact
+                              gamesA={myProfile?.games ?? []}
+                              gamesB={mp?.games ?? []}
+                            />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })
+                  )}
+
+                  {/* Actions */}
+                  {myId === selectedSession.creator_id ? (
+                    <Pressable
+                      style={[styles.actionBtn, { backgroundColor: colors.danger }]}
+                      onPress={handleDelete}
+                    >
+                      <Text style={[styles.actionText, { color: '#fff' }]}>Session löschen</Text>
+                    </Pressable>
+                  ) : memberIds.includes(myId) ? (
+                    <Pressable
+                      style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
+                      onPress={handleLeave}
+                    >
+                      <Text style={[styles.actionText, { color: colors.danger }]}>Session verlassen</Text>
+                    </Pressable>
+                  ) : selectedSession.status === 'full' ? (
+                    <View style={[styles.actionBtn, { backgroundColor: colors.cardAlt, opacity: 0.5 }]}>
+                      <Text style={[styles.actionText, { color: colors.textMuted }]}>Session voll</Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                      onPress={handleJoin}
+                    >
+                      <Text style={[styles.actionText, { color: colors.primaryText }]}>Beitreten</Text>
+                    </Pressable>
+                  )}
+                </ScrollView>
+
+                {/* Chat pane */}
+                {memberIds.includes(myId) ? (
+                  <View style={[styles.chatPane, { borderTopColor: colors.border }]}>
+                    <Text style={[styles.sectionLabel, { color: colors.textMuted, padding: 8 }]}>Session-Chat</Text>
+                    <FlatList
+                      style={{ flex: 1 }}
+                      contentContainerStyle={{ paddingHorizontal: 10, gap: 4 }}
+                      data={chat}
+                      inverted
+                      keyExtractor={(m) => m.id}
+                      renderItem={({ item }) => {
+                        const mine = item.user_id === myId;
+                        return (
+                          <View style={[styles.chatBubble, mine ? styles.chatMine : styles.chatOther, { backgroundColor: mine ? colors.bubbleMine : colors.bubbleOther }]}>
+                            {!mine ? (
+                              <Text style={[styles.chatAuthor, { color: colors.bubbleOtherText }]}>
+                                {item.username?.trim() || 'Unbenannt'}
+                              </Text>
+                            ) : null}
+                            <Text style={[styles.chatContent, { color: mine ? colors.bubbleMineText : colors.bubbleOtherText }]}>
+                              {item.content}
+                            </Text>
+                            <Text style={[styles.chatTime, { color: mine ? colors.bubbleMineText : colors.bubbleOtherText }]}>
+                              {clockTime(item.created_at)}
+                            </Text>
+                          </View>
+                        );
+                      }}
+                    />
+                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                      <View style={[styles.chatInput, { backgroundColor: colors.cardAlt, borderTopColor: colors.border }]}>
+                        <TextInput
+                          style={[styles.chatField, { color: colors.text }]}
+                          placeholder="Nachricht…"
+                          placeholderTextColor={colors.textMuted}
+                          value={chatText}
+                          onChangeText={setChatText}
+                          onSubmitEditing={handleSendChat}
+                        />
+                        <Pressable
+                          style={[styles.chatSend, { backgroundColor: colors.primary }, (!chatText.trim() || sendingChat) && { opacity: 0.5 }]}
+                          disabled={!chatText.trim() || sendingChat}
+                          onPress={handleSendChat}
+                        >
+                          <Text style={{ color: colors.primaryText, fontWeight: '700' }}>↑</Text>
+                        </Pressable>
+                      </View>
+                    </KeyboardAvoidingView>
+                  </View>
+                ) : (
+                  <View style={[styles.chatPane, { borderTopColor: colors.border, alignItems: 'center', justifyContent: 'center' }]}>
+                    <Text style={[styles.empty, { color: colors.textMuted }]}>
+                      Tritt der Session bei, um zu chatten.
                     </Text>
                   </View>
-                ) : null}
-
-                <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Mitglieder</Text>
-                {loadingMembers ? (
-                  <ActivityIndicator color={colors.textMuted} />
-                ) : (
-                  memberIds.map((id) => {
-                    const mp = profiles.find((p) => p.id === id);
-                    return (
-                      <Pressable
-                        key={id}
-                        style={[styles.memberRow, { backgroundColor: colors.cardAlt }]}
-                        onPress={() => openProfile(id)}
-                      >
-                        <Text style={[styles.memberName, { color: colors.text }]}>
-                          {id === selectedSession.creator_id ? '👑 ' : ''}
-                          {displayName(id)}
-                        </Text>
-                        {id !== myId ? (
-                          <CompatibilityBadge
-                            selfId={myId}
-                            otherId={id}
-                            compact
-                            gamesA={myProfile?.games ?? []}
-                            gamesB={mp?.games ?? []}
-                          />
-                        ) : null}
-                      </Pressable>
-                    );
-                  })
-                )}
-
-                {/* Actions */}
-                {myId === selectedSession.creator_id ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.danger }]}
-                    onPress={handleDelete}
-                  >
-                    <Text style={[styles.actionText, { color: '#fff' }]}>Session löschen</Text>
-                  </Pressable>
-                ) : memberIds.includes(myId) ? (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.cardAlt }]}
-                    onPress={handleLeave}
-                  >
-                    <Text style={[styles.actionText, { color: colors.danger }]}>Session verlassen</Text>
-                  </Pressable>
-                ) : selectedSession.status === 'full' ? (
-                  <View style={[styles.actionBtn, { backgroundColor: colors.cardAlt, opacity: 0.5 }]}>
-                    <Text style={[styles.actionText, { color: colors.textMuted }]}>Session voll</Text>
-                  </View>
-                ) : (
-                  <Pressable
-                    style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-                    onPress={handleJoin}
-                  >
-                    <Text style={[styles.actionText, { color: colors.primaryText }]}>Beitreten</Text>
-                  </Pressable>
                 )}
 
                 <Pressable style={styles.closeBtn} onPress={() => setSelectedSession(null)}>
                   <Text style={[styles.closeText, { color: colors.textMuted }]}>Schließen</Text>
                 </Pressable>
-              </ScrollView>
+              </View>
             ) : null}
           </View>
         </View>
@@ -518,6 +638,24 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 15, fontWeight: '700' },
   closeBtn: { alignItems: 'center', paddingVertical: 12 },
   closeText: { fontSize: 14, fontWeight: '500' },
+  detailBody: { flex: 1, flexDirection: 'column' },
+  membersPane: { maxHeight: 260, paddingHorizontal: 12, paddingTop: 8 },
+  chatPane: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth, minHeight: 200 },
+  chatBubble: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 7, maxWidth: '80%', marginBottom: 4 },
+  chatMine: { alignSelf: 'flex-end' },
+  chatOther: { alignSelf: 'flex-start' },
+  chatAuthor: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  chatContent: { fontSize: 14 },
+  chatTime: { fontSize: 10, marginTop: 2, opacity: 0.7, alignSelf: 'flex-end' },
+  chatInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  chatField: { flex: 1, fontSize: 14, paddingVertical: 6 },
+  chatSend: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   fieldLabel: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8 },
   input: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   inputMulti: { minHeight: 70, textAlignVertical: 'top' },
