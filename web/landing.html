@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GamerCoPlay — Finde deine Zocker-Crew</title>
+    <meta
+      name="description"
+      content="GamerCoPlay verbindet Gamer, die gerade zocken wollen — sieh wer online ist, schreib direkt an, und starte gemeinsam in dein nächstes Abenteuer."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0f1117;
+        --bg-soft: #161922;
+        --card: #1b1f2a;
+        --card-border: #262b38;
+        --accent: #639922;
+        --accent-bright: #7fbf2e;
+        --text: #f3f5f8;
+        --text-muted: #9aa4b2;
+        --online: #4ade80;
+        --offline: #6b7280;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ---------- Header ---------- */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(15, 17, 23, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 68px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+      }
+
+      .logo span {
+        color: var(--accent-bright);
+      }
+
+      .nav-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        font-weight: 600;
+        font-size: 14px;
+        transition: border-color 0.2s, transform 0.1s;
+      }
+
+      .nav-cta:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        position: relative;
+        padding: 80px 0 64px;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        height: 600px;
+        background: radial-gradient(
+          circle,
+          rgba(99, 153, 34, 0.18) 0%,
+          rgba(99, 153, 34, 0) 65%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 16px;
+        border-radius: 999px;
+        background: rgba(99, 153, 34, 0.12);
+        border: 1px solid rgba(99, 153, 34, 0.35);
+        color: var(--accent-bright);
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 28px;
+      }
+
+      .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent-bright);
+        box-shadow: 0 0 0 0 rgba(127, 191, 46, 0.6);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(127, 191, 46, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(127, 191, 46, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(127, 191, 46, 0);
+        }
+      }
+
+      h1 {
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 1.08;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        margin-bottom: 22px;
+      }
+
+      h1 .hl {
+        color: var(--accent-bright);
+      }
+
+      .subtext {
+        font-size: clamp(16px, 2.4vw, 19px);
+        color: var(--text-muted);
+        max-width: 620px;
+        margin: 0 auto 36px;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 15px 28px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.12s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
+        border: 1px solid transparent;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+        color: #0f1117;
+        box-shadow: 0 8px 24px rgba(99, 153, 34, 0.32);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(99, 153, 34, 0.45);
+      }
+
+      .btn-secondary {
+        background: var(--card);
+        color: var(--text);
+        border-color: var(--card-border);
+      }
+
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+      }
+
+      /* ---------- Browser mockup ---------- */
+      .mockup-wrap {
+        position: relative;
+        z-index: 1;
+        margin: 64px auto 0;
+        max-width: 720px;
+      }
+
+      .browser {
+        background: var(--bg-soft);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+      }
+
+      .browser-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        background: #12151d;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .dots {
+        display: flex;
+        gap: 7px;
+      }
+
+      .dots i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: block;
+      }
+
+      .dots i:nth-child(1) {
+        background: #ff5f57;
+      }
+      .dots i:nth-child(2) {
+        background: #febc2e;
+      }
+      .dots i:nth-child(3) {
+        background: #28c840;
+      }
+
+      .url {
+        flex: 1;
+        background: #0c0e14;
+        border: 1px solid var(--card-border);
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .url b {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .browser-body {
+        padding: 22px;
+        text-align: left;
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .panel-title h3 {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .panel-title .count {
+        font-size: 13px;
+        color: var(--accent-bright);
+        font-weight: 600;
+      }
+
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 13px 14px;
+        border-radius: 12px;
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        margin-bottom: 10px;
+      }
+
+      .user-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .avatar {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 16px;
+        color: #0f1117;
+        flex-shrink: 0;
+      }
+
+      .avatar .status {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2.5px solid var(--card);
+      }
+
+      .status.on {
+        background: var(--online);
+      }
+      .status.off {
+        background: var(--offline);
+      }
+
+      .user-meta {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .user-meta .name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .user-meta .activity {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .activity .playing {
+        color: var(--accent-bright);
+        font-weight: 600;
+      }
+
+      .tag {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .tag.ingame {
+        background: rgba(99, 153, 34, 0.15);
+        color: var(--accent-bright);
+      }
+      .tag.online {
+        background: rgba(74, 222, 128, 0.13);
+        color: var(--online);
+      }
+      .tag.offline {
+        background: rgba(107, 114, 128, 0.18);
+        color: var(--offline);
+      }
+
+      /* ---------- Features ---------- */
+      .section {
+        padding: 90px 0;
+      }
+
+      .section-head {
+        text-align: center;
+        max-width: 620px;
+        margin: 0 auto 56px;
+      }
+
+      .section-head h2 {
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 14px;
+      }
+
+      .section-head p {
+        color: var(--text-muted);
+        font-size: 17px;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+
+      .feature {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 28px 24px;
+        transition: transform 0.2s, border-color 0.2s;
+      }
+
+      .feature:hover {
+        transform: translateY(-4px);
+        border-color: rgba(99, 153, 34, 0.5);
+      }
+
+      .feature-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: rgba(99, 153, 34, 0.12);
+        display: grid;
+        place-items: center;
+        font-size: 24px;
+        margin-bottom: 18px;
+      }
+
+      .feature h3 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 9px;
+      }
+
+      .feature p {
+        font-size: 14.5px;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
+
+      /* ---------- APK download block ---------- */
+      .apk {
+        position: relative;
+        background: linear-gradient(
+          135deg,
+          rgba(99, 153, 34, 0.12),
+          rgba(99, 153, 34, 0.03)
+        );
+        border: 1px solid rgba(99, 153, 34, 0.3);
+        border-radius: 24px;
+        padding: 56px 40px;
+        text-align: center;
+        overflow: hidden;
+      }
+
+      .apk-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        background: rgba(99, 153, 34, 0.15);
+        display: grid;
+        place-items: center;
+        margin: 0 auto 22px;
+      }
+
+      .apk-icon svg {
+        width: 40px;
+        height: 40px;
+        fill: var(--accent-bright);
+      }
+
+      .apk h2 {
+        font-size: clamp(26px, 4vw, 36px);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+      }
+
+      .apk p {
+        color: var(--text-muted);
+        font-size: 17px;
+        margin-bottom: 30px;
+      }
+
+      /* ---------- Footer ---------- */
+      footer {
+        border-top: 1px solid var(--card-border);
+        padding: 36px 0;
+        text-align: center;
+      }
+
+      footer p {
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+
+      footer .sep {
+        color: var(--accent);
+        margin: 0 8px;
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 860px) {
+        .features {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 520px) {
+        .features {
+          grid-template-columns: 1fr;
+        }
+        .hero {
+          padding: 56px 0 40px;
+        }
+        .section {
+          padding: 64px 0;
+        }
+        .btn {
+          width: 100%;
+        }
+        .hero-buttons {
+          flex-direction: column;
+        }
+        .apk {
+          padding: 40px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div class="container nav">
+        <a class="logo" href="/">
+          <span class="logo-mark">🎮</span>
+          Gamer<span>CoPlay</span>
+        </a>
+        <a class="nav-cta" href="/app">App öffnen →</a>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          Kostenlos &amp; Open Community
+        </div>
+        <h1>
+          Finde deine Zocker-Crew.<br />
+          <span class="hl">Spiel zusammen, nicht allein.</span>
+        </h1>
+        <p class="subtext">
+          GamerCoPlay verbindet Gamer, die gerade zocken wollen — sieh wer online
+          ist, schreib direkt an, und starte gemeinsam in dein nächstes
+          Abenteuer.
+        </p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" href="#download">⬇ APK herunterladen</a>
+          <a class="btn btn-secondary" href="/app">App öffnen</a>
+        </div>
+
+        <!-- Browser mockup -->
+        <div class="mockup-wrap">
+          <div class="browser">
+            <div class="browser-bar">
+              <div class="dots"><i></i><i></i><i></i></div>
+              <div class="url">🔒 <b>gamercoplay.de</b>/app</div>
+            </div>
+            <div class="browser-body">
+              <div class="panel-title">
+                <h3>Wer ist gerade da?</h3>
+                <span class="count">3 online</span>
+              </div>
+
+              <div class="user-row">
+                <div class="avatar" style="background: #8b5cf6">
+                  C<span class="status on"></span>
+                </div>
+                <div class="user-meta">
+                  <div class="name">Complex</div>
+                  <div class="activity">
+                    Im Game · <span class="playing">Valheim</span>
+                  </div>
+                </div>
+                <span class="tag ingame">Im Game</span>
+              </div>
+
+              <div class="user-row">
+                <div class="avatar" style="background: #639922">
+                  M<span class="status on"></span>
+                </div>
+                <div class="user-meta">
+                  <div class="name">MaxGamer</div>
+                  <div class="activity">
+                    Online · <span class="playing">Rocket League</span>
+                  </div>
+                </div>
+                <span class="tag online">Online</span>
+              </div>
+
+              <div class="user-row">
+                <div class="avatar" style="background: #ec4899">
+                  S<span class="status on"></span>
+                </div>
+                <div class="user-meta">
+                  <div class="name">Sylvanas</div>
+                  <div class="activity">
+                    Online · <span class="playing">WoW: Midnight</span>
+                  </div>
+                </div>
+                <span class="tag online">Online</span>
+              </div>
+
+              <div class="user-row">
+                <div class="avatar" style="background: #475569">
+                  S<span class="status off"></span>
+                </div>
+                <div class="user-meta">
+                  <div class="name">SkyKnight</div>
+                  <div class="activity">Offline</div>
+                </div>
+                <span class="tag offline">Offline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Alles für deine Gaming-Community</h2>
+          <p>Vier Features, ein Ziel: niemand zockt mehr allein.</p>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">🟢</div>
+            <h3>Live-Status</h3>
+            <p>Sieh in Echtzeit, wer online ist und was gerade gespielt wird.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">💬</div>
+            <h3>Direkt chatten</h3>
+            <p>DMs, globaler Chat und Squad-only Channels — alles in einer App.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🛡️</div>
+            <h3>Squads &amp; LFG</h3>
+            <p>Erstelle Gruppen, find Mitspieler und starte Gaming-Sessions.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">⭐</div>
+            <h3>XP &amp; Quests</h3>
+            <p>Level auf, lös tägliche Quests und sammle Badges &amp; Achievements.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APK download -->
+    <section class="section" id="download" style="padding-top: 0">
+      <div class="container">
+        <div class="apk">
+          <div class="apk-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M17.6 9.48l1.84-3.18a.4.4 0 0 0-.69-.4l-1.86 3.22a11.3 11.3 0 0 0-9.78 0L5.25 5.9a.4.4 0 0 0-.69.4L6.4 9.48A10.78 10.78 0 0 0 1 18.05h22a10.78 10.78 0 0 0-5.4-8.57zM7 15.25a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
+              />
+            </svg>
+          </div>
+          <h2>Android APK</h2>
+          <p>Direkt installierbar — kein Play Store nötig.</p>
+          <a class="btn btn-primary" href="#">⬇ APK herunterladen</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="container">
+        <p>
+          GamerCoPlay <span class="sep">·</span> Ein Community-Projekt
+          <span class="sep">·</span> gamercoplay.de
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
