@@ -32,3 +32,7 @@ yarn-error.*
 
 # EAS
 .easignore
+
+# brag video tooling artifacts (vendored skills + verification scratch)
+brag-output/composition/.claude/
+brag-output/composition/snapshots/

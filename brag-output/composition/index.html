@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: #0f1117;
+        font-family: "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      :root {
+        --bg: #0f1117; --bg-soft: #161922; --card: #1b1f2a; --card-border: #262b38;
+        --accent: #639922; --accent-bright: #7fbf2e; --text: #f3f5f8; --muted: #9aa4b2;
+        --online: #4ade80; --offline: #6b7280;
+        --app-card: #ffffff; --app-text: #111827; --app-muted: #6b7280;
+        --indigo: #4f46e5; --indigo-soft: #eef2ff; --indigo-text: #4338ca; --app-online: #22c55e;
+      }
+
+      .scene {
+        position: absolute; inset: 0; width: 1920px; height: 1080px;
+        background: var(--bg); overflow: hidden;
+      }
+      .glow-green {
+        position: absolute; left: 50%; top: -240px; transform: translateX(-50%);
+        width: 1500px; height: 1100px; pointer-events: none;
+        background: radial-gradient(circle, rgba(99,153,34,0.20) 0%, rgba(99,153,34,0) 62%);
+      }
+      .glow-purple {
+        position: absolute; pointer-events: none;
+        background: radial-gradient(circle, rgba(79,70,229,0.30) 0%, rgba(79,70,229,0) 64%);
+      }
+
+      #beatGlow {
+        position: absolute; inset: 0; pointer-events: none; opacity: 0;
+        mix-blend-mode: screen;
+        background:
+          radial-gradient(900px 600px at 24% 42%, rgba(127,191,46,0.55) 0%, rgba(127,191,46,0) 60%),
+          radial-gradient(820px 560px at 78% 60%, rgba(99,102,241,0.42) 0%, rgba(99,102,241,0) 60%);
+      }
+
+      .scene-label {
+        position: absolute; left: 120px; top: 50%; transform: translateY(-50%);
+        width: 720px;
+      }
+      .kicker {
+        display: inline-flex; align-items: center; gap: 12px;
+        font-size: 22px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+        color: var(--accent-bright); margin-bottom: 22px;
+      }
+      .kicker .dot {
+        width: 12px; height: 12px; border-radius: 50%; background: var(--accent-bright);
+        box-shadow: 0 0 14px rgba(127,191,46,0.9);
+      }
+      .scene-label h2 {
+        font-size: 78px; line-height: 1.02; font-weight: 900; letter-spacing: -0.03em;
+        color: var(--text);
+      }
+      .scene-label h2 .hl { color: var(--accent-bright); }
+      .scene-label h2 .pl { color: #a5a0ff; }
+      .scene-label p { margin-top: 22px; font-size: 26px; color: var(--muted); font-weight: 500; }
+
+      .phone {
+        position: absolute; right: 150px; top: 50%; transform: translateY(-50%);
+        width: 560px; border-radius: 40px; background: #f3f4f6;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 10px #0c0e14, 0 0 80px rgba(99,153,34,0.18);
+        padding: 26px 22px; overflow: hidden;
+      }
+
+      .app-card {
+        background: var(--app-card); border-radius: 22px; padding: 24px 24px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.10); margin-bottom: 16px;
+      }
+
+      .hello { font-size: 34px; font-weight: 800; color: var(--app-text); }
+      .pres-line { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 20px; color: var(--app-muted); }
+      .pres-line b { color: var(--app-text); font-weight: 700; }
+      .gdot { width: 16px; height: 16px; border-radius: 50%; background: var(--app-online); box-shadow: 0 0 0 4px rgba(34,197,94,0.18); }
+      .level-row { display: flex; align-items: baseline; justify-content: space-between; margin-top: 22px; }
+      .level-row .lv { font-size: 26px; font-weight: 800; color: var(--app-text); }
+      .level-row .xp { font-size: 19px; color: var(--app-muted); font-weight: 600; }
+      .xp-track { margin-top: 12px; height: 16px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+      .xp-fill { height: 100%; width: 100%; border-radius: 999px; background: var(--indigo); transform-origin: left center; transform: scaleX(0.55); }
+      .chips { display: flex; gap: 12px; margin-top: 20px; }
+      .chip { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px; background: #eef0f4; font-size: 19px; font-weight: 600; color: var(--app-text); }
+      .games-label { margin-top: 22px; font-size: 16px; font-weight: 700; color: var(--app-muted); }
+      .game-chip { display: inline-block; margin-top: 10px; padding: 9px 16px; border-radius: 999px; background: var(--indigo-soft); color: var(--indigo-text); font-weight: 700; font-size: 18px; }
+
+      .status-btn {
+        position: relative; margin-top: 4px; height: 64px; border-radius: 18px;
+        display: grid; place-items: center; font-size: 22px; font-weight: 800; overflow: hidden;
+      }
+      .status-btn .face { position: absolute; inset: 0; display: grid; place-items: center; }
+      .face.off { background: #9aa0aa; color: #ffffff; }
+      .face.on  { background: var(--app-online); color: #ffffff; }
+
+      .sec-title { font-size: 24px; font-weight: 800; color: var(--app-text); margin-bottom: 6px; }
+      .sec-sub { font-size: 16px; font-weight: 700; color: var(--app-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 6px 0 14px; }
+
+      .act { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid #eef0f4; }
+      .act .when { width: 130px; font-size: 16px; color: var(--app-muted); flex-shrink: 0; }
+      .act .what b { display: block; font-size: 19px; color: var(--app-text); font-weight: 700; }
+      .act .what span { font-size: 16px; color: var(--app-muted); }
+
+      .urow { display: flex; align-items: center; gap: 16px; padding: 16px 16px; border-radius: 16px; background: #f7f8fa; margin-bottom: 12px; }
+      .av { position: relative; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 22px; flex-shrink: 0; }
+      .av .s { position: absolute; right: -2px; bottom: -2px; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #f7f8fa; background: var(--app-online); }
+      .av .s.off { background: #9ca3af; }
+      .uname { font-size: 22px; font-weight: 700; color: var(--app-text); }
+      .uact { font-size: 17px; color: var(--app-muted); }
+      .uact .pl { color: var(--accent); font-weight: 700; }
+      .utag { margin-left: auto; font-size: 15px; font-weight: 800; padding: 7px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
+      .utag.ingame { background: rgba(99,153,34,0.14); color: var(--accent); }
+      .utag.online { background: rgba(34,197,94,0.14); color: #16a34a; }
+      .utag.off { background: rgba(107,114,128,0.16); color: #6b7280; }
+
+      .chat-head { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; color: var(--app-text); padding: 6px 6px 22px; }
+      .bubble { max-width: 80%; margin-left: auto; background: var(--indigo); color: #fff; padding: 18px 22px; border-radius: 22px 22px 6px 22px; font-size: 22px; font-weight: 600; box-shadow: 0 8px 24px rgba(79,70,229,0.35); }
+      .bubble .t { display: block; margin-top: 8px; font-size: 15px; opacity: 0.75; text-align: right; }
+      .reacts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+      .react { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 999px; background: #fff; border: 1px solid #e5e7eb; font-size: 18px; font-weight: 700; color: #374151; }
+      .react.hot { border-color: var(--indigo); color: var(--indigo); }
+      .b-gap { height: 22px; }
+
+      #cursor { position: absolute; width: 54px; height: 54px; z-index: 30; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+
+      .land { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 200px; }
+      .logo-top { position: absolute; left: 80px; top: 56px; display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 800; color: var(--text); }
+      .logo-mark { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent-bright)); display: grid; place-items: center; font-size: 28px; }
+      .logo-top .br { color: var(--accent-bright); }
+      .badge { display: inline-flex; align-items: center; gap: 12px; padding: 12px 26px; border-radius: 999px; background: rgba(99,153,34,0.12); border: 1px solid rgba(99,153,34,0.4); color: var(--accent-bright); font-size: 24px; font-weight: 700; margin-bottom: 38px; }
+      .badge .bd { width: 12px; height: 12px; border-radius: 50%; background: var(--accent-bright); box-shadow: 0 0 14px rgba(127,191,46,0.9); }
+      .land h1 { font-size: 110px; line-height: 1.04; font-weight: 900; letter-spacing: -0.04em; color: var(--text); }
+      .land h1 .hl { color: var(--accent-bright); }
+      .land .sub { margin-top: 34px; max-width: 1080px; font-size: 30px; line-height: 1.5; color: var(--muted); font-weight: 500; }
+
+      .feat-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 120px; }
+      .feat-wrap h2 { font-size: 70px; font-weight: 900; letter-spacing: -0.03em; color: var(--text); text-align: center; margin-bottom: 56px; }
+      .feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; width: 100%; max-width: 1620px; }
+      .feat { background: var(--card); border: 1px solid var(--card-border); border-radius: 22px; padding: 36px 30px; }
+      .feat .ic { width: 76px; height: 76px; border-radius: 18px; background: rgba(99,153,34,0.12); display: grid; place-items: center; font-size: 40px; margin-bottom: 26px; }
+      .feat h3 { font-size: 30px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+      .feat p { font-size: 21px; line-height: 1.5; color: var(--muted); }
+
+      .outro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #07080c; }
+      .outro .bloom { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; background: radial-gradient(circle, rgba(99,153,34,0.30) 0%, rgba(79,70,229,0.18) 38%, rgba(0,0,0,0) 66%); }
+      .outro .mark { width: 168px; height: 168px; border-radius: 40px; background: linear-gradient(135deg, var(--accent), var(--accent-bright)); display: grid; place-items: center; font-size: 92px; box-shadow: 0 0 90px rgba(99,153,34,0.6); }
+      .outro .name { margin-top: 40px; font-size: 96px; font-weight: 900; letter-spacing: -0.03em; color: var(--text); }
+      .outro .name .br { color: var(--accent-bright); }
+      .outro .url { margin-top: 18px; font-size: 34px; font-weight: 700; color: var(--accent-bright); letter-spacing: 0.02em; }
+      .outro .tag { margin-top: 22px; font-size: 26px; color: var(--muted); font-weight: 500; }
+      .fade-black { position: absolute; inset: 0; background: #000; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20.12" data-width="1920" data-height="1080">
+
+      <!-- ============ SCENE 1 — LANDING HOOK ============ -->
+      <div class="scene clip" id="s1" data-start="0" data-duration="3.22" data-track-index="1">
+        <div class="glow-green"></div>
+        <div class="logo-top" id="s1logo"><span class="logo-mark">🎮</span>Gamer<span class="br">CoPlay</span></div>
+        <div class="land">
+          <div class="badge" id="s1badge"><span class="bd"></span>Kostenlos &amp; Open Community</div>
+          <h1><span id="s1l1">Finde deine Zocker-Crew.</span><br /><span class="hl" id="s1l2">Spiel zusammen, nicht allein.</span></h1>
+          <p class="sub" id="s1sub">GamerCoPlay verbindet Gamer, die gerade zocken wollen — sieh wer online ist, schreib direkt an, und starte gemeinsam in dein nächstes Abenteuer.</p>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 2 — PROFILE ============ -->
+      <div class="scene clip" id="s2" data-start="3.02" data-duration="3.21" data-track-index="2">
+        <div class="glow-green"></div>
+        <div class="glow-purple" style="right:60px;top:120px;width:900px;height:900px;"></div>
+        <div class="scene-label" id="s2label">
+          <div class="kicker"><span class="dot"></span>Dein Profil</div>
+          <h2>Level auf.<br /><span class="pl">XP &amp; Quests.</span></h2>
+          <p>Dein Fortschritt, Streak und tägliche Quests — alles auf einen Blick.</p>
+        </div>
+        <div class="phone" id="s2phone">
+          <div class="app-card">
+            <div class="hello">Hallo, Funnypeace 👋</div>
+            <div class="pres-line"><span class="gdot"></span><b>Online</b> · 🔥 .: Carpe Diem :.</div>
+            <div class="level-row"><span class="lv">⭐ Level 3</span><span class="xp">340 / 450 XP</span></div>
+            <div class="xp-track"><div class="xp-fill" id="s2xp"></div></div>
+            <div class="chips">
+              <span class="chip">🔥 Streak</span>
+              <span class="chip">📋 Quests</span>
+            </div>
+            <div class="games-label">Aktuelle Spiele</div>
+            <div class="game-chip">Dota Underlords</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 3 — ACTIVITY + STATUS TOGGLE ============ -->
+      <div class="scene clip" id="s3" data-start="6.03" data-duration="3.19" data-track-index="3">
+        <div class="glow-green"></div>
+        <div class="scene-label" id="s3label">
+          <div class="kicker"><span class="dot"></span>Ein Tap</div>
+          <h2>Geh <span class="hl">Online.</span></h2>
+          <p>"Auf Online setzen" — und die Crew sieht sofort, dass du da bist.</p>
+        </div>
+        <div class="phone" id="s3phone">
+          <div class="app-card" style="padding:20px;">
+            <div class="status-btn" id="s3btn">
+              <div class="face off" id="s3off">Auf Online setzen</div>
+              <div class="face on" id="s3on" style="opacity:0;">● Online</div>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="sec-title">Meine Aktivität</div>
+            <div class="act"><div class="when">vor 6 Minuten</div><div class="what"><b>Angemeldet</b><span>App geöffnet</span></div></div>
+            <div class="act"><div class="when">vor 11 Stunden</div><div class="what"><b>squad</b><span>Squad erstellt: Carpe Diem</span></div></div>
+            <div class="act" style="border-bottom:none;"><div class="when">vor 11 Stunden</div><div class="what"><b>level_up</b><span>Level Up! 🎉 Level 3</span></div></div>
+          </div>
+          <svg id="cursor" viewBox="0 0 24 24"><path fill="#ffffff" stroke="#111827" stroke-width="1.4" d="M4 2l14 7-6 1.6 3.3 6.4-2.7 1.4-3.3-6.4L6 17z"/></svg>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 4 — ANDERE NUTZER (REALTIME) ============ -->
+      <div class="scene clip" id="s4" data-start="9.02" data-duration="3.20" data-track-index="4">
+        <div class="glow-green"></div>
+        <div class="scene-label" id="s4label">
+          <div class="kicker"><span class="dot"></span>Live</div>
+          <h2>Sieh wer <span class="hl">gerade da ist.</span></h2>
+          <p>Echtzeit-Status — Mitspieler ploppen live online, sobald sie ans Pad gehen.</p>
+        </div>
+        <div class="phone" id="s4phone">
+          <div class="app-card">
+            <div class="sec-sub">Andere Nutzer</div>
+            <div class="urow">
+              <div class="av" style="background:#8b5cf6">C<span class="s"></span></div>
+              <div><div class="uname">Complex</div><div class="uact">Im Game · <span class="pl">Valheim</span></div></div>
+              <span class="utag ingame">Im Game</span>
+            </div>
+            <div class="urow" id="s4max">
+              <div class="av" style="background:#639922">M<span class="s off" id="s4dot"></span></div>
+              <div><div class="uname">max</div><div class="uact" id="s4act">Offline</div></div>
+              <span class="utag off" id="s4tag">Offline</span>
+            </div>
+            <div class="urow">
+              <div class="av" style="background:#ec4899">S<span class="s"></span></div>
+              <div><div class="uname">Sylvanas</div><div class="uact">Online · <span class="pl">WoW: Midnight</span></div></div>
+              <span class="utag online">Online</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 5 — GLOBAL CHAT ============ -->
+      <div class="scene clip" id="s5" data-start="12.02" data-duration="3.20" data-track-index="5">
+        <div class="glow-purple" style="left:50%;top:50%;transform:translate(-50%,-50%);width:1300px;height:1000px;"></div>
+        <div class="scene-label" id="s5label">
+          <div class="kicker"><span class="dot"></span>Chat</div>
+          <h2>Schreib <span class="pl">direkt an.</span></h2>
+          <p>Global Chat, DMs und Squad-Channels — alles in einer App.</p>
+        </div>
+        <div class="phone" id="s5phone">
+          <div class="chat-head">💬 Global Chat</div>
+          <div style="padding:0 6px 6px;">
+            <div class="bubble" id="s5b1">Herzlich Willkommen ;-)<span class="t">10:17</span></div>
+            <div class="reacts" id="s5r"><span class="react">👍 1</span><span class="react hot">❤️ 1</span></div>
+            <div class="b-gap"></div>
+            <div class="bubble" id="s5b2">Wenn sich jemand verirrt hat, bitte melden :-D<span class="t">01:15</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 6 — FEATURE GRID ============ -->
+      <div class="scene clip" id="s6" data-start="15.02" data-duration="2.70" data-track-index="6">
+        <div class="glow-green"></div>
+        <div class="feat-wrap">
+          <h2 id="s6h">Alles für deine Gaming-Community</h2>
+          <div class="feat-grid">
+            <div class="feat f-card"><div class="ic">🟢</div><h3>Live-Status</h3><p>Sieh in Echtzeit, wer online ist und was gerade gespielt wird.</p></div>
+            <div class="feat f-card"><div class="ic">💬</div><h3>Direkt chatten</h3><p>DMs, globaler Chat und Squad-only Channels — alles in einer App.</p></div>
+            <div class="feat f-card"><div class="ic">🛡️</div><h3>Squads &amp; LFG</h3><p>Erstelle Gruppen, find Mitspieler und starte Gaming-Sessions.</p></div>
+            <div class="feat f-card"><div class="ic">⭐</div><h3>XP &amp; Quests</h3><p>Level auf, lös tägliche Quests und sammle Badges &amp; Achievements.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCENE 7 — OUTRO LOGO ============ -->
+      <div class="scene clip" id="s7" data-start="17.52" data-duration="2.60" data-track-index="7">
+        <div class="outro">
+          <div class="bloom" id="s7bloom"></div>
+          <div class="mark" id="s7mark">🎮</div>
+          <div class="name" id="s7name">Gamer<span class="br">CoPlay</span></div>
+          <div class="url" id="s7url">gamercoplay.de</div>
+          <div class="tag" id="s7tag">niemand zockt mehr allein.</div>
+          <div class="fade-black" id="s7fade"></div>
+        </div>
+      </div>
+
+      <!-- global beat-reactive neon overlay (above scenes) -->
+      <div id="beatGlow" class="clip" data-start="0" data-duration="20.12" data-track-index="14"></div>
+
+      <!-- ============ AUDIO ============ -->
+      <audio id="music" class="clip" data-start="0" data-duration="20.12" data-track-index="20" data-volume="0.34"
+        src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
+
+      <audio id="sfx-hook" class="clip" data-start="0.20" data-duration="1.2" data-track-index="21" data-volume="0.6" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-cut2" class="clip" data-start="3.02" data-duration="0.8" data-track-index="22" data-volume="0.42" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
+      <audio id="sfx-cut3" class="clip" data-start="6.03" data-duration="0.8" data-track-index="23" data-volume="0.42" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
+      <audio id="sfx-tap-click" class="clip" data-start="7.50" data-duration="0.5" data-track-index="24" data-volume="0.7" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="sfx-tap-pop" class="clip" data-start="7.58" data-duration="0.6" data-track-index="25" data-volume="0.55" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-online" class="clip" data-start="10.52" data-duration="0.6" data-track-index="26" data-volume="0.62" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-chat1" class="clip" data-start="12.45" data-duration="0.6" data-track-index="27" data-volume="0.5" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sfx-chat2" class="clip" data-start="13.45" data-duration="0.6" data-track-index="28" data-volume="0.5" src="assets/sfx/casino/card-slide-2.ogg"></audio>
+      <audio id="sfx-feat1" class="clip" data-start="15.10" data-duration="0.4" data-track-index="29" data-volume="0.42" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-feat2" class="clip" data-start="15.40" data-duration="0.4" data-track-index="30" data-volume="0.42" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-feat3" class="clip" data-start="15.70" data-duration="0.4" data-track-index="31" data-volume="0.42" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-feat4" class="clip" data-start="16.00" data-duration="0.4" data-track-index="32" data-volume="0.42" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-logo" class="clip" data-start="17.52" data-duration="1.6" data-track-index="33" data-volume="0.8" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+
+      // ---------- SCENE 1 — landing hook (0.0–3.02) ----------
+      tl.from("#s1logo", { opacity: 0, x: -30, duration: 0.4 }, 0.05);
+      tl.from("#s1badge", { opacity: 0, y: 20, duration: 0.4 }, 0.15);
+      tl.from("#s1l1", { opacity: 0, y: 50, duration: 0.45, ease: E }, 0.30); // beat-locked: headline slam ~0.30
+      tl.from("#s1l2", { opacity: 0, y: 60, scale: 0.92, duration: 0.5, ease: "back.out(1.6)" }, 0.55);
+      tl.from("#s1sub", { opacity: 0, y: 24, duration: 0.5 }, 0.95);
+
+      // ---------- SCENE 2 — profile (3.02–6.03) ----------
+      tl.from("#s2label", { opacity: 0, x: -50, duration: 0.5, ease: E }, 3.10);
+      tl.from("#s2phone", { opacity: 0, y: 90, scale: 0.95, duration: 0.55, ease: E }, 3.10); // beat-grid: cut 3.02
+      tl.set("#s2xp", { scaleX: 0.55 }, 3.10);
+      tl.to("#s2xp", { scaleX: 0.755, duration: 0.9, ease: "power2.out" }, 3.55); // XP 340/450 fill
+      tl.from(".chip", { opacity: 0, y: 16, stagger: 0.12, duration: 0.35 }, 3.70);
+      tl.from(".game-chip", { opacity: 0, scale: 0.8, duration: 0.35, ease: "back.out(2)" }, 4.05);
+
+      // ---------- SCENE 3 — activity + status toggle (6.03–9.02) ----------
+      tl.from("#s3label", { opacity: 0, x: -50, duration: 0.5, ease: E }, 6.10);
+      tl.from("#s3phone", { opacity: 0, y: 80, scale: 0.96, duration: 0.5, ease: E }, 6.10); // beat-grid: cut 6.03
+      tl.from(".act", { opacity: 0, x: 30, stagger: 0.12, duration: 0.35 }, 6.45);
+      tl.set("#cursor", { right: 130, top: 380, opacity: 0 }, 6.10);
+      tl.to("#cursor", { opacity: 1, duration: 0.25 }, 6.85);
+      tl.to("#cursor", { right: 250, top: 150, duration: 0.5, ease: "power2.inOut" }, 7.05);
+      tl.to("#cursor", { scale: 0.82, duration: 0.1, yoyo: true, repeat: 1 }, 7.50); // beat-grid: tap 7.52
+      tl.to("#s3off", { opacity: 0, duration: 0.18 }, 7.55);
+      tl.to("#s3on", { opacity: 1, duration: 0.22 }, 7.55);
+      tl.fromTo("#s3btn", { boxShadow: "0 0 0px rgba(34,197,94,0)" }, { boxShadow: "0 0 44px rgba(34,197,94,0.7)", duration: 0.3, yoyo: true, repeat: 1 }, 7.55);
+      tl.to("#cursor", { opacity: 0, duration: 0.25 }, 7.95);
+
+      // ---------- SCENE 4 — andere nutzer realtime (9.02–12.02) ----------
+      tl.from("#s4label", { opacity: 0, x: -50, duration: 0.5, ease: E }, 9.10);
+      tl.from("#s4phone", { opacity: 0, y: 80, scale: 0.96, duration: 0.5, ease: E }, 9.10); // beat-grid: cut 9.02
+      tl.from(".urow", { opacity: 0, x: 30, stagger: 0.12, duration: 0.35 }, 9.45);
+      tl.to("#s4dot", { backgroundColor: "#22c55e", duration: 0.2 }, 10.52); // beat-grid: flip 10.52
+      tl.to("#s4dot", { boxShadow: "0 0 0 5px rgba(34,197,94,0.25)", scale: 1.25, duration: 0.22, yoyo: true, repeat: 1 }, 10.52);
+      tl.add(() => {
+        document.getElementById('s4act').innerHTML = 'Online · <span class="pl">Rocket League</span>';
+        const t = document.getElementById('s4tag'); t.className = 'utag online'; t.textContent = 'Online';
+      }, 10.55);
+      tl.fromTo("#s4tag", { scale: 0.6, opacity: 0.3 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2)" }, 10.55);
+
+      // ---------- SCENE 5 — global chat (12.02–15.02) ----------
+      tl.from("#s5label", { opacity: 0, x: -50, duration: 0.5, ease: E }, 12.10);
+      tl.from("#s5phone", { opacity: 0, y: 80, scale: 0.96, duration: 0.5, ease: E }, 12.10); // beat-grid: cut 12.02
+      tl.set(["#s5b1", "#s5r", "#s5b2"], { opacity: 0 }, 12.10);
+      tl.fromTo("#s5b1", { opacity: 0, y: 40, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.7)" }, 12.45); // beat-grid: bubble 12.52
+      tl.fromTo("#s5r", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 12.95);
+      tl.fromTo("#s5b2", { opacity: 0, y: 40, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.7)" }, 13.45); // beat-grid: bubble 13.51
+
+      // ---------- SCENE 6 — feature grid (15.02–17.52) ----------
+      tl.from("#s6h", { opacity: 0, y: 30, duration: 0.4, ease: E }, 15.05);
+      tl.from(".f-card", { opacity: 0, y: 60, scale: 0.9, stagger: 0.30, duration: 0.4, ease: "back.out(1.6)" }, 15.10); // beat-grid: 15.10/15.40/15.70/16.00
+
+      // ---------- SCENE 7 — outro logo (17.52–20.12) ----------
+      tl.fromTo("#s7mark", { opacity: 0, scale: 0.4, rotation: -12 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2.2)" }, 17.52); // beat-locked: 17.52 strong cue
+      tl.fromTo("#s7bloom", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.7, ease: "power2.out" }, 17.52);
+      tl.from("#s7name", { opacity: 0, y: 30, duration: 0.45, ease: E }, 17.85);
+      tl.from("#s7url", { opacity: 0, y: 20, duration: 0.4 }, 18.10);
+      tl.from("#s7tag", { opacity: 0, duration: 0.4 }, 18.35);
+      tl.to("#music", { volume: 0, duration: 0.45 }, 19.60);
+      tl.to("#s7fade", { opacity: 1, duration: 0.4 }, 19.70);
+
+      // ---------- beat-reactive neon glow (beat-driven; RMS helper not shipped) ----------
+      const beats = [3.02,3.52,4.02,4.53,5.03,5.53,6.03,6.52,7.02,7.52,8.02,8.52,9.02,9.52,
+        10.02,10.52,11.02,11.52,12.02,12.52,13.01,13.51,14.02,14.52,15.02,15.52,16.02,16.52,
+        17.02,17.52,18.02,18.52,19.02];
+      const strong = new Set([15.02,16.02,17.02,17.52,18.02,18.52]);
+      beats.forEach((b) => {
+        const peak = strong.has(b) ? 0.16 : 0.085;
+        tl.to("#beatGlow", { opacity: peak, duration: 0.10, ease: "power2.out", overwrite: "auto" }, b);
+        tl.to("#beatGlow", { opacity: 0.0, duration: 0.34, ease: "power2.in", overwrite: "auto" }, b + 0.10);
+      });
+      tl.to("#beatGlow", { opacity: 0.14, duration: 0.12, overwrite: "auto" }, 0.30);
+      tl.to("#beatGlow", { opacity: 0.0, duration: 0.30, overwrite: "auto" }, 0.42);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
