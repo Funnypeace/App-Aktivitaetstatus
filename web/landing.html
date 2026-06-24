@@ -419,6 +419,23 @@
         color: var(--offline);
       }
 
+      /* ---------- Demo video ---------- */
+      .video-section {
+        padding: 16px 0 8px;
+      }
+
+      .demo-video {
+        display: block;
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        border-radius: 18px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55),
+          0 0 50px rgba(99, 153, 34, 0.16);
+        background: var(--bg-soft);
+      }
+
       /* ---------- Features ---------- */
       .section {
         padding: 90px 0;
@@ -571,6 +588,9 @@
         .apk {
           padding: 40px 24px;
         }
+        .demo-video {
+          border-radius: 12px;
+        }
       }
     </style>
   </head>
@@ -676,6 +696,15 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Demo video -->
+    <section class="video-section">
+      <div class="container">
+        <video class="demo-video" autoplay muted loop playsinline>
+          <source src="/gamercoplay.video.v1.mp4" type="video/mp4" />
+        </video>
       </div>
     </section>
 
