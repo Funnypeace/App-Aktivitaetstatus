@@ -43,4 +43,17 @@ console.log('[postbuild] dist/index.html -> dist/app.html');
 fs.copyFileSync(landingSource, exportedAppEntry);
 console.log('[postbuild] web/landing.html -> dist/index.html');
 
+// 3. Copy static assets from public/ to the site root (e.g. the demo video).
+const publicDir = path.join(root, 'public');
+if (fs.existsSync(publicDir)) {
+  for (const entry of fs.readdirSync(publicDir)) {
+    fs.cpSync(path.join(publicDir, entry), path.join(dist, entry), {
+      recursive: true,
+    });
+    console.log(`[postbuild] public/${entry} -> dist/${entry}`);
+  }
+} else {
+  console.warn('[postbuild] No public/ folder found — skipping static assets.');
+}
+
 console.log('[postbuild] Done. Landing at /, app at /app.');

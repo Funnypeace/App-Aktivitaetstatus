@@ -419,6 +419,23 @@
         color: var(--offline);
       }
 
+      /* ---------- Demo video ---------- */
+      .video-section {
+        padding: 16px 0 8px;
+      }
+
+      .demo-video {
+        display: block;
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        border-radius: 18px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55),
+          0 0 50px rgba(99, 153, 34, 0.16);
+        background: var(--bg-soft);
+      }
+
       /* ---------- Features ---------- */
       .section {
         padding: 90px 0;
@@ -571,6 +588,9 @@
         .apk {
           padding: 40px 24px;
         }
+        .demo-video {
+          border-radius: 12px;
+        }
       }
     </style>
   </head>
@@ -603,7 +623,11 @@
           Abenteuer.
         </p>
         <div class="hero-buttons">
-          <a class="btn btn-primary" href="#download">⬇ APK herunterladen</a>
+          <a
+            class="btn btn-primary"
+            href="https://github.com/Funnypeace/App-Aktivitaetstatus/releases/download/v1.0/GamerCoPlay-v1.0.apk"
+            >⬇ APK herunterladen</a
+          >
           <a class="btn btn-secondary" href="/app">App öffnen</a>
         </div>
 
@@ -675,6 +699,15 @@
       </div>
     </section>
 
+    <!-- Demo video -->
+    <section class="video-section">
+      <div class="container">
+        <video class="demo-video" autoplay muted loop playsinline>
+          <source src="/gamercoplay.video.v1.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </section>
+
     <!-- Features -->
     <section class="section">
       <div class="container">
@@ -720,7 +753,11 @@
           </div>
           <h2>Android APK</h2>
           <p>Direkt installierbar — kein Play Store nötig.</p>
-          <a class="btn btn-primary" href="#">⬇ APK herunterladen</a>
+          <a
+            class="btn btn-primary"
+            href="https://github.com/Funnypeace/App-Aktivitaetstatus/releases/download/v1.0/GamerCoPlay-v1.0.apk"
+            >⬇ APK herunterladen</a
+          >
         </div>
       </div>
     </section>
