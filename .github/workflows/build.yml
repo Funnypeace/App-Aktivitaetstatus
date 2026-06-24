@@ -31,6 +31,7 @@ jobs:
     # authenticate non-interactively in CI.
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PROJECT_ID: 35ee130a-0ecf-4fbe-89bc-7d90ad6346c4
     steps:
       - uses: actions/checkout@v4
 
