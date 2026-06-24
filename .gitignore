@@ -32,3 +32,6 @@ yarn-error.*
 
 # EAS
 .easignore
+
+# Tooling output
+brag-output/
