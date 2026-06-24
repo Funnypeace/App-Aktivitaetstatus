@@ -1,9 +1,9 @@
-name: TypeScript Check & Android Build
-
+name: TypeScript Check
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   typecheck:
@@ -11,51 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript check
-        run: npx tsc --noEmit
-
-  build-android:
-    name: EAS Build – Android APK
-    needs: typecheck
-    runs-on: ubuntu-latest
-    # Provide the Expo token to every step in this job so the EAS CLI can
-    # authenticate non-interactively in CI.
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_PROJECT_ID: 35ee130a-0ecf-4fbe-89bc-7d90ad6346c4
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Verify EXPO_TOKEN is set
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::EXPO_TOKEN secret is not set. Add it under Settings → Secrets and variables → Actions (https://docs.expo.dev/accounts/programmatic-access/)."
-            exit 1
-          fi
-          echo "EXPO_TOKEN is set."
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup Expo + EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Build Android APK (preview)
-        run: eas build -p android --profile preview --non-interactive --clear-cache
+      - run: npm ci
+      - run: npx tsc --noEmit
