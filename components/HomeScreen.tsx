@@ -627,7 +627,14 @@ export default function HomeScreen({
           value={chatText}
           onChangeText={setChatText}
           multiline
+          blurOnSubmit={false}
           onSubmitEditing={sendChat}
+          onKeyPress={(e: any) => {
+            if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+              e.preventDefault?.();
+              sendChat();
+            }
+          }}
         />
         <Pressable
           style={[

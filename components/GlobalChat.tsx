@@ -230,7 +230,14 @@ export default function GlobalChat({
           value={text}
           onChangeText={setText}
           multiline
+          blurOnSubmit={false}
           onSubmitEditing={send}
+          onKeyPress={(e: any) => {
+            if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+              e.preventDefault?.();
+              send();
+            }
+          }}
         />
         <Pressable
           style={[styles.sendBtn, { backgroundColor: colors.primary }, (!text.trim() || sending) && styles.disabled]}
